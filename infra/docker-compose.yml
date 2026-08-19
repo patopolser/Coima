@@ -1,0 +1,94 @@
+# Coima — full stack: Neo4j + backend (FastAPI) + scraper supervisor + frontend (nginx)
+#
+# Run from the repo root:
+#   docker compose --env-file .env -f infra/docker-compose.yml up --build
+#
+# All values fall back to local-dev defaults, so it also works without a .env.
+
+name: coima
+
+services:
+  neo4j:
+    image: neo4j:5
+    environment:
+      NEO4J_AUTH: "${COIMA_NEO4J_USER:-neo4j}/${COIMA_NEO4J_PASSWORD:-coima_password}"
+      NEO4J_server_memory_pagecache_size: "${COIMA_NEO4J_PAGECACHE:-512m}"
+      # Elastic heap: a low floor lets G1 shrink the committed heap back toward
+      # it when idle, while the higher ceiling absorbs the detector's self-join
+      # peaks. A wide floor->ceiling gap is what makes the uncommit below useful.
+      NEO4J_server_memory_heap_initial__size: "${COIMA_NEO4J_HEAP_INIT:-512m}"
+      NEO4J_server_memory_heap_max__size: "${COIMA_NEO4J_HEAP_MAX:-1g}"
+      # Make G1 run a periodic GC while Neo4j is idle so it returns unused
+      # committed memory to the OS (JEP 346), instead of holding the detector's
+      # peak forever. Interval is in ms (here 5 min); the periodic GC runs as a
+      # concurrent cycle by default (G1PeriodicGCInvokesConcurrent=true).
+      # Keep this to a SINGLE -XX flag: the image collapses a multi-line value
+      # into one server.jvm.additional entry and Neo4j rejects two -XX tokens in
+      # one setting ("-XX declared multiple times").
+      NEO4J_server_jvm_additional: "-XX:G1PeriodicGCInterval=300000"
+    # Safety net above heap_max + pagecache + JVM off-heap. The heap ceiling is
+    # what really bounds growth; this just stops a runaway from taking the host.
+    mem_limit: "${COIMA_NEO4J_MEM_LIMIT:-2g}"
+    ports:
+      - "7474:7474"   # HTTP browser
+      - "7687:7687"   # Bolt
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/backend.Dockerfile
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      COIMA_NEO4J_URI: "neo4j://neo4j:7687"
+      COIMA_NEO4J_USER: "${COIMA_NEO4J_USER:-neo4j}"
+      COIMA_NEO4J_PASSWORD: "${COIMA_NEO4J_PASSWORD:-coima_password}"
+      COIMA_SCRAPER_CONTROL_DIR: "/data/scraper-output"
+    volumes:
+      - scraper_output:/data/scraper-output
+      - backend_data:/app/data
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  scraper:
+    build:
+      context: ..
+      dockerfile: infra/scraper.Dockerfile
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      COIMA_NEO4J_URI: "neo4j://neo4j:7687"
+      COIMA_NEO4J_USER: "${COIMA_NEO4J_USER:-neo4j}"
+      COIMA_NEO4J_PASSWORD: "${COIMA_NEO4J_PASSWORD:-coima_password}"
+      COIMA_OUTPUT_DIR: "/data/scraper-output"
+    volumes:
+      - scraper_output:/data/scraper-output
+    depends_on:
+      neo4j:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: infra/frontend.Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  neo4j_data:
+  scraper_output:
+  backend_data:

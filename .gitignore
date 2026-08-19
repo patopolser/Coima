@@ -1,0 +1,45 @@
+# ─── Python ───────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ─── Node / frontend ──────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# ─── Secrets / env ────────────────────────
+.env
+*.env
+!.env.example
+
+# ─── Data & generated artifacts ───────────
+backend/data/*.db
+backend/data/*.json
+data/*.db
+data/*.json
+# Clean schema-only seed DB is versioned and baked into the Docker image.
+!backend/data/coima.seed.db
+
+# ─── Scraper runtime state ────────────────
+scraper/output/
+
+# ─── Logs ─────────────────────────────────
+*.log
+logs/
+
+# ─── IDE / OS ─────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ─── Claude ─────────────────────────────────
+CLAUDE.md

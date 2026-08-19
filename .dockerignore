@@ -1,0 +1,16 @@
+# Keep the build context small.
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/venv/
+**/node_modules/
+frontend/dist/
+**/.git/
+**/.claude/
+**/.vscode/
+backend/data/*.db
+backend/data/*.json
+# Keep the clean seed DB so the image can seed an empty volume on first run.
+!backend/data/coima.seed.db
+scraper/output/
+*.log

@@ -1,0 +1,22 @@
+{
+  "legacy": {
+    "description": "Legacy check (metadata inferred)"
+  },
+  "errors": {
+    "check_not_found": "Check '{key}' not found",
+    "unit_not_found": "Unit '{code}' not found in latest run",
+    "authorizer_not_found": "Authorizer '{name}' not found in latest run",
+    "no_detection_run": "No detection run available",
+    "company_not_found": "Company '{cuit}' not found in latest run",
+    "provider_not_found": "Provider '{cuit}' not found in graph",
+    "investigation_not_found": "Investigation not found",
+    "note_empty": "Note text cannot be empty",
+    "message_empty": "Message cannot be empty",
+    "no_completed_run": "No completed detection run found",
+    "cooldown_active": "This action was triggered recently; retry in {seconds} seconds"
+  },
+  "ai": {
+    "language_instruction_en": "Respond in English.",
+    "language_instruction_es": "Respond in Spanish."
+  }
+}

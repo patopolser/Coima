@@ -1,0 +1,17 @@
+# Coima backend (FastAPI + detector)
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+SQLAlchemy>=2.0.0
+neo4j>=5.0.0
+requests>=2.31.0
+tabulate>=0.9.0
+
+# Network / graph analytics for Python analyzer checks (cartel detection)
+networkx>=3.0
+
+# AI clients (investigations) — optional at runtime, imported lazily
+anthropic>=0.34.0
+openai>=1.30.0
+google-genai>=0.3.0
