@@ -8,6 +8,10 @@ prefix. Detection knobs (checks, thresholds, weights) are no longer read from
 services/config_service.py. `config.json` only seeds the Neo4j connection
 block for this module and is still consumed by the `run.py --detect` CLI
 path.
+
+Relative paths (`.env`, `config.json`, `sqlite_path`) resolve against the
+backend/ directory, not the process cwd, so the MCP server behaves the same
+whether Claude Code / Codex launch it from the repo root or from backend/.
 """
 
 from __future__ import annotations
@@ -15,15 +19,24 @@ from __future__ import annotations
 import json
 import os
 from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+
+
+def _backend_path(path: str) -> str:
+    """Anchor a relative path at backend/; absolute paths pass through."""
+    return path if os.path.isabs(path) else str(BACKEND_DIR / path)
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="COIMA_",
-        env_file=".env",
+        env_file=str(BACKEND_DIR / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -60,19 +73,21 @@ class Settings(BaseSettings):
     # Max accepted request body size in bytes.
     max_body_bytes: int = 1_000_000
 
-    # AI keys (optional; clients fall back to env vars set by third-party libs).
-    anthropic_api_key: Optional[str] = None
-    gemini_api_key: Optional[str] = None
-    serper_api_key: Optional[str] = None
-    deepseek_api_key: Optional[str] = None
-    deepseek_base_url: str = "https://integrate.api.nvidia.com/v1"
-    deepseek_model: str = "deepseek-v4-flash"
-    deepseek_enable_tools: bool = False
-    deepseek_temperature: float = 1
-    deepseek_top_p: float = 0.95
-    deepseek_max_tokens: int = 16384
-
     detection_cache_min_new_tenders: int = 500
+
+    # MCP server (src/mcp_server). Locale for check names/descriptions in tool
+    # output. The token is optional: when set, the HTTP transport at /mcp
+    # requires `Authorization: Bearer <token>`; stdio never needs it.
+    mcp_locale: str = "es"
+    mcp_token: Optional[str] = None
+    # Extra Host headers accepted by /mcp besides localhost (DNS-rebinding
+    # guard), comma-separated, e.g. "backend:*,coima.example.org".
+    mcp_allowed_hosts: str = ""
+
+    @field_validator("sqlite_path", "config_path")
+    @classmethod
+    def _anchor_relative(cls, value: str) -> str:
+        return _backend_path(value)
 
 
 def _load_from_config_json(path: str) -> dict:
@@ -100,5 +115,5 @@ def _load_from_config_json(path: str) -> dict:
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Return a cached Settings instance, seeded from config.json as fallback."""
-    overrides = _load_from_config_json("config.json")
+    overrides = _load_from_config_json(_backend_path("config.json"))
     return Settings(**overrides)

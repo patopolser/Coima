@@ -1,9 +1,10 @@
 """
 run.py - CLI entry point.
 
-Two modes are supported:
+Three modes are supported:
   --api       run the FastAPI REST backend via uvicorn.
   --detect    run the standalone Neo4j detection pipeline and write a JSON report.
+  --mcp       serve the MCP server over stdio (what Claude Code / Codex launch).
 
 With no flag the parser help is printed.
 """
@@ -26,6 +27,12 @@ def run_api(host="0.0.0.0", port=8000, reload=False):
         reload=reload,
         log_level="info",
     )
+
+
+def run_mcp():
+    # Nothing may be printed here: stdout is the MCP protocol channel.
+    from src.mcp_server.server import run_stdio
+    run_stdio()
 
 
 def run_detection(config_path, output_path, limit, uri, user, password):
@@ -61,6 +68,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Coima Application Runner")
     parser.add_argument("--api", action="store_true", help="Run the FastAPI REST backend")
     parser.add_argument("--detect", action="store_true", help="Run the Neo4j corruption detection script")
+    parser.add_argument("--mcp", action="store_true", help="Serve the MCP server over stdio (Claude Code / Codex)")
 
     parser.add_argument("--port", type=int, default=None, help="Server port (default: 8000)")
     parser.add_argument("--host", default="0.0.0.0", help="Server host")
@@ -75,7 +83,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.detect:
+    if args.mcp:
+        run_mcp()
+    elif args.detect:
         run_detection(args.config, args.output, args.limit, args.uri, args.user, args.password)
     elif args.api:
         port = args.port or 8000

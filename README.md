@@ -18,7 +18,7 @@ A public instance runs at **[coima-demo.com](https://coima-demo.com)**. It serve
 **real data** scraped from the official portals, but with **entity names censored**:
 buyers, suppliers and officials are shown under stable pseudonyms, so the patterns
 and risk indicators are genuine while no real name is attributed to any finding.
-The demo is read-only and does not expose scraper control or investigation tools.
+The demo is read-only and does not expose scraper control or the MCP server.
 
 ## Objective
 
@@ -27,8 +27,9 @@ patterns across buyers, suppliers, and time. Coima scrapes that data into a
 graph, runs a battery of red-flag detectors over it (serial winners, anomalous
 competition patterns, bid-rotation indicators, possible contract splitting,
 shared-contact clusters, authorizer-bias indicators, etc.), assigns risk scores
-to providers, and exposes everything through a dashboard with an AI-assisted
-investigation workspace.
+to providers, and exposes everything through a dashboard and through an
+[MCP server](#investigating-with-ai-agents-mcp) that AI agents such as Claude
+Code and Codex use to investigate the data.
 
 The goal is to turn scattered tender records into queryable, prioritized
 **leads for human review** by journalists and auditors — not to label anyone as
@@ -61,8 +62,8 @@ contratar.gob.ar ┘                (system of      (one Cypher    (SQLite)
 | Folder | What it is | Read more |
 |---|---|---|
 | `scraper/` | Scrapes both procurement portals and ingests structured data into Neo4j. Runs as a one-shot CLI or as a backend-controllable supervisor. | [scraper/README.md](scraper/README.md) · [SCHEMA.md](scraper/SCHEMA.md) |
-| `backend/` | FastAPI service and detection engine: runs the detectors, computes risk scores, serves entity profiles and graph data, manages AI-assisted investigations, and controls the scraper. | [backend/README.md](backend/README.md) · [CHECKS.md](backend/src/detector/checks/CHECKS.md) |
-| `frontend/` | React + Vite single-page app: dashboard, risk scores, check findings, entity profiles, graph explorer, scraper control, investigation workspace. | [frontend/README.md](frontend/README.md) |
+| `backend/` | FastAPI service and detection engine: runs the detectors, computes risk scores, serves entity profiles and graph data, exposes the MCP server for AI agents, and controls the scraper. | [backend/README.md](backend/README.md) · [CHECKS.md](backend/src/detector/checks/CHECKS.md) |
+| `frontend/` | React + Vite single-page app: dashboard, risk scores, check findings, entity profiles, graph explorer, scraper control. | [frontend/README.md](frontend/README.md) |
 | `infra/` | Docker Compose, per-service Dockerfiles and the nginx config that ties the four pieces together. | — |
 
 The backend and the scraper run as **separate containers** and coordinate
@@ -88,6 +89,31 @@ persist). Add `-v` to also wipe the Neo4j data and scraper progress.
 > This stack is meant for **local/trusted use**: it publishes Neo4j and the
 > backend to the host and leaves the admin surface open. Do not expose it to
 > the internet as-is — see [SECURITY.md](SECURITY.md).
+
+## Investigating with AI agents (MCP)
+
+Coima ships an [MCP](https://modelcontextprotocol.io) server, so you can
+investigate from **Claude Code** or **Codex** with your own subscription: no
+AI keys to configure in Coima. The agent gets tools to rank and profile
+providers, units and officials, explain risk scores, map collusion networks,
+inspect processes, run read-only Cypher, and keep investigation cases (notes
+and reports) that persist across sessions.
+
+With the Docker stack running, the server is at `http://localhost:8000/mcp`.
+
+- **Claude Code**: open the repo; the project's [`.mcp.json`](.mcp.json)
+  registers `coima` automatically (approve it on first use, check with `/mcp`).
+  From elsewhere: `claude mcp add --transport http coima http://localhost:8000/mcp`.
+- **Codex**: add to `~/.codex/config.toml`:
+
+  ```toml
+  [mcp_servers.coima]
+  url = "http://localhost:8000/mcp"
+  ```
+
+Then ask, for example, *"Investigate CUIT 30-12345678-9 and record what you
+find"*. Running without Docker, setting a bearer token, and the full tool list
+are in [backend/README.md](backend/README.md#mcp-server-for-ai-agents).
 
 ## Controlling the scraper
 

@@ -2,7 +2,7 @@
 src/api/database/sqlite.py - SQLAlchemy ORM models and database initialisation.
 
 Stores detection runs, the findings cache, risk scores, and all investigation
-data (subjects, notes, chat messages, reports). An additive migration step
+data (subjects, notes, reports). An additive migration step
 runs on every startup so new columns introduced after a deployment can be
 added in place without dropping data.
 """
@@ -94,10 +94,6 @@ class Investigation(Base):
         "InvestigationSubject", back_populates="investigation",
         cascade="all, delete-orphan", order_by="InvestigationSubject.id"
     )
-    messages = relationship(
-        "InvestigationMessage", back_populates="investigation",
-        cascade="all, delete-orphan", order_by="InvestigationMessage.created_at"
-    )
     notes = relationship(
         "InvestigationNote", back_populates="investigation",
         cascade="all, delete-orphan", order_by="InvestigationNote.created_at"
@@ -121,22 +117,6 @@ class InvestigationSubject(Base):
     detail_url = Column(String)
 
     investigation = relationship("Investigation", back_populates="subjects")
-
-
-class InvestigationMessage(Base):
-    __tablename__ = "investigation_messages"
-
-    id = Column(String, primary_key=True)
-    investigation_id = Column(
-        String, ForeignKey("investigations.id"), nullable=False, index=True
-    )
-    role = Column(String, nullable=False)
-    content = Column(Text, nullable=False)
-    tool_calls = Column(Text)
-    tool_results = Column(Text)
-    created_at = Column(String, nullable=False)
-
-    investigation = relationship("Investigation", back_populates="messages")
 
 
 class InvestigationNote(Base):

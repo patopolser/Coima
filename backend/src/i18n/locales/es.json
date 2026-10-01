@@ -9,14 +9,7 @@
     "no_detection_run": "No hay ejecución de detección disponible",
     "company_not_found": "Empresa '{cuit}' no encontrada en la última ejecución",
     "provider_not_found": "Proveedor '{cuit}' no encontrado en el grafo",
-    "investigation_not_found": "Investigación no encontrada",
-    "note_empty": "El texto de la nota no puede estar vacío",
-    "message_empty": "El mensaje no puede estar vacío",
     "no_completed_run": "No se encontró ninguna ejecución de detección completada",
     "cooldown_active": "Esta acción se ejecutó hace poco; reintente en {seconds} segundos"
-  },
-  "ai": {
-    "language_instruction_en": "Responde en inglés.",
-    "language_instruction_es": "Responde en español."
   }
 }

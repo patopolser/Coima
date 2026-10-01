@@ -10,9 +10,6 @@ import Units from './pages/Units'
 import UnitDetail from './pages/UnitDetail'
 import Authorizers from './pages/Authorizers'
 import AuthorizerDetail from './pages/AuthorizerDetail'
-import Investigations from './pages/Investigations'
-import InvestigationNew from './pages/InvestigationNew'
-import InvestigationDetail from './pages/InvestigationDetail'
 import GraphExplorer from './pages/GraphExplorer'
 import Scraper from './pages/Scraper'
 import Settings from './pages/Settings'
@@ -58,9 +55,6 @@ export default function App() {
             <Route path="/units/:code" element={<UnitDetail />} />
             <Route path="/authorizers" element={<Authorizers />} />
             <Route path="/authorizers/:name" element={<AuthorizerDetail />} />
-            <Route path="/investigations" element={<Investigations />} />
-            <Route path="/investigations/new" element={<InvestigationNew />} />
-            <Route path="/investigations/:id" element={<InvestigationDetail />} />
             <Route path="/graph" element={<GraphExplorer />} />
             <Route path="/scraper" element={<Scraper />} />
             <Route path="/settings" element={<Settings />} />

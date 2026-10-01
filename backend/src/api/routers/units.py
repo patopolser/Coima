@@ -23,43 +23,11 @@ from ..dependencies import db_session
 from ..locale import get_locale
 from ..schemas.detection import UnitDetail, UnitRow
 from ..schemas.common import PaginatedResponse
-from ..services import detection_service
-from ..services.config_service import get_detection_config
-from ..services.scoring_service import build_check_meta, get_entity_index, paginate
+from ..services.detection_context import load_detection_context
+from ..services.entity_service import entity_scores, rank_entities
+from ..services.scoring_service import paginate
 
 router = APIRouter(prefix="/api/units", tags=["units"])
-
-
-def _fallback_score(info: dict, check_meta: dict) -> int:
-    """Ad-hoc score (sum of weights) when no smart score exists for a unit."""
-    return sum(
-        check_meta.get(key, {}).get("weight", 0)
-        for key, rows in info.get("findings", {}).items()
-        if rows
-    )
-
-
-def _check_counts(info: dict) -> dict:
-    """Map {check_key: finding_count} for an indexed unit."""
-    return {key: len(rows) for key, rows in info.get("findings", {}).items() if rows}
-
-
-def _get_run_and_index(db: Session, check_meta: dict):
-    """Fetch the latest run and return its cached unit index."""
-    run = detection_service._get_latest_done_run(db)
-    if run is None:
-        return None, {}
-    findings = detection_service.get_findings_for_run(db, run.id)
-    unit_index = get_entity_index(run.id, findings, check_meta, "unit")
-    return run, unit_index
-
-
-def _unit_scores(db: Session, run_id: int) -> dict:
-    """Map {unit_code: smart-score dict} from the unit-namespace risk scores."""
-    return {
-        s["cuit"]: s
-        for s in detection_service.get_risk_scores_for_run(db, run_id, entity_type="unit")
-    }
 
 
 @router.get("", response_model=PaginatedResponse[UnitRow])
@@ -70,27 +38,12 @@ def list_units(
     per_page: int = Query(50, ge=1, le=200),
     search: Optional[str] = Query(None),
 ):
-    cfg = get_detection_config(db)
-    check_meta = build_check_meta(cfg.get("weights", {}), locale=locale)
-    run, unit_index = _get_run_and_index(db, check_meta)
-    scores = _unit_scores(db, run.id) if run else {}
-
-    rows = []
-    for code, info in unit_index.items():
-        smart = scores.get(code)
-        risk_score = smart["score"] if smart else _fallback_score(info, check_meta)
-        has_synergy = bool(smart and (smart.get("evidence_breakdown") or {}).get("multiplier", 1) > 1)
-        rows.append(UnitRow(
-            code=code,
-            name=info["name"],
-            total_tenders=info.get("total_tenders", 0),
-            risk_score=risk_score,
-            confidence=smart.get("confidence", 0) if smart else 0,
-            has_synergy=has_synergy,
-            check_counts=_check_counts(info),
-        ))
-
-    rows.sort(key=lambda x: x.risk_score, reverse=True)
+    ctx = load_detection_context(db, locale)
+    ranked = rank_entities(db, ctx, "unit") if ctx else []
+    rows = [
+        UnitRow(code=r["id"], **{k: v for k, v in r.items() if k != "id"})
+        for r in ranked
+    ]
 
     if search:
         sl = search.lower()
@@ -102,23 +55,18 @@ def list_units(
 
 @router.get("/{code:path}", response_model=UnitDetail)
 def get_unit(code: str, db: Session = Depends(db_session), locale: str = Depends(get_locale)):
-    cfg = get_detection_config(db)
-    check_meta = build_check_meta(cfg.get("weights", {}), locale=locale)
-    run, unit_index = _get_run_and_index(db, check_meta)
-
-    info = unit_index.get(code)
+    ctx = load_detection_context(db, locale)
+    info = ctx.entity_index("unit").get(code) if ctx else None
     if info is None:
         raise HTTPException(
             status_code=404,
             detail=t("errors.unit_not_found", locale, code=code),
         )
 
-    risk = _unit_scores(db, run.id).get(code) if run else None
-
     return UnitDetail(
         code=code,
         name=info["name"],
         total_tenders=info.get("total_tenders", 0),
-        risk=risk,
+        risk=entity_scores(db, ctx.run.id, "unit").get(code),
         findings={k: list(v) for k, v in info.get("findings", {}).items()},
     )

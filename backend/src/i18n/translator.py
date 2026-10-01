@@ -60,10 +60,3 @@ def t(key: str, locale: str = "en", default: str = "", **kwargs: Any) -> str:
         except (KeyError, ValueError):
             return text
     return text
-
-
-def ai_language_instruction(locale: str) -> str:
-    """Localized one-liner appended to AI system prompts so the model replies in the user's language."""
-    loc = normalize_locale(locale)
-    key = "language_instruction_es" if loc == "es" else "language_instruction_en"
-    return t(f"ai.{key}", loc, default="Respond in English." if loc == "en" else "Responde en español.")

@@ -33,12 +33,12 @@ state (runs, findings, scores, config overrides, saved investigations).
 
 ```
 backend/
-├── run.py                  # CLI: --api (REST server) | --detect (one-shot report)
+├── run.py                  # CLI: --api (REST server) | --detect (one-shot report) | --mcp (MCP over stdio)
 ├── config.json             # Detection config for the --detect CLI path only
 ├── requirements.txt
 ├── data/
 │   └── coima.seed.db       # Schema-only SQLite seed baked into the Docker image
-├── tests/                  # pytest: scoring, analyzers, metrics, AI tools
+├── tests/                  # pytest: scoring, analyzers, metrics, MCP server
 └── src/
     ├── detector/           # Detection engine
     │   ├── checks/         # One file per red flag (auto-discovered) + CHECKS.md
@@ -58,7 +58,7 @@ backend/
     │   ├── services/       # Business logic
     │   ├── schemas/        # Pydantic request/response models
     │   └── database/       # neo4j.py (driver) + sqlite.py (ORM + session)
-    ├── ai/                 # Optional LLM clients for investigations
+    ├── mcp_server/         # MCP server for AI agents (tools, prompts, graph schema)
     └── i18n/               # Server-side EN/ES strings for check metadata
 ```
 
@@ -78,16 +78,57 @@ and more. The full list and the authoring guide are in
 confidence level and an evidence breakdown, including synergy bonuses when
 several checks that reinforce each other fire on the same entity.
 
-## AI-assisted investigations (optional)
+## MCP server for AI agents
 
-`src/ai/` holds thin clients for Claude, Gemini and DeepSeek. The shared tool
-set (`CoimaTools`, `TOOLS`, report prompts) lives in `claude_client.py` and
-lets the model query the current run's findings and scores while chatting.
+`src/mcp_server/` exposes Coima to MCP clients such as Claude Code and Codex.
+The agent brings its own model, so Coima needs no AI keys. The same tools are
+served over two transports:
 
-API keys are optional and read from the environment
-(`COIMA_ANTHROPIC_API_KEY`, `COIMA_GEMINI_API_KEY`, `COIMA_DEEPSEEK_API_KEY`).
-Clients are imported lazily, so the rest of the API works unchanged when no
-key is set.
+| Transport | How | Use it when |
+|---|---|---|
+| Streamable HTTP | `POST /mcp` on the API (stateless, JSON responses) | The Docker stack or `run.py --api` is running |
+| stdio | `python run.py --mcp`, launched by the client | Local development without the API process |
+
+Both read the same Neo4j and SQLite as the API (paths resolve from `backend/`,
+whatever the cwd). With Docker, use HTTP: the SQLite file lives in the
+`backend_data` volume, which a host-side stdio process cannot see.
+
+**Connecting.** The repo's `.mcp.json` registers the HTTP server for Claude
+Code. For stdio, install the backend into a venv and register it:
+
+```bash
+python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.txt
+claude mcp add coima-local -- "$PWD/backend/.venv/bin/python" "$PWD/backend/run.py" --mcp
+codex mcp add coima-local -- "$PWD/backend/.venv/bin/python" "$PWD/backend/run.py" --mcp
+```
+
+Codex over HTTP: in `~/.codex/config.toml`, set `[mcp_servers.coima]` with
+`url = "http://localhost:8000/mcp"`. If `COIMA_MCP_TOKEN` is set, add
+`bearer_token_env_var = "COIMA_MCP_TOKEN"` (Codex) or
+`--header "Authorization: Bearer $COIMA_MCP_TOKEN"` (`claude mcp add`).
+
+**Tools.** Every list is paginated or capped and reports what it left out.
+
+| Group | Tools |
+|---|---|
+| Detection | `get_detection_status`, `list_checks`, `get_check_findings` |
+| Entities | `search_providers`, `search_entities` (units, authorizers), `get_entity_profile`, `get_entity_risk_breakdown` |
+| Networks | `get_network_neighborhood`, `list_related_companies`, `get_entity_graph` |
+| Processes | `search_tenders`, `get_tender` |
+| Graph | `get_graph_schema`, `run_cypher` |
+| Cases (write) | `list_investigations`, `get_investigation`, `create_investigation`, `add_subject`, `add_note`, `save_report`, `set_investigation_status` |
+
+All tools are read-only except the case tools, which only add data (nothing
+deletes). `run_cypher` runs in a READ-access Neo4j transaction, so the database
+itself rejects writes; it also has a 30s timeout and row and size caps.
+Prompts: `investigate_company` and one `report_<type>` per report kind
+(executive summary, timeline, network analysis, cartel hypothesis), shown in
+Claude Code as `/mcp__coima__<name>`.
+
+Investigation cases live in SQLite (`investigations`, `investigation_subjects`,
+`investigation_notes`, `investigation_reports`). Databases created before the
+MCP server may still have an unused `investigation_messages` table from the
+removed chat; it is harmless.
 
 ## Endpoints
 
@@ -99,7 +140,7 @@ key is set.
 | Entities | `GET /api/companies/{cuit}`, `GET /api/units`, `GET /api/units/{code}`, `GET /api/authorizers`, `GET /api/authorizers/{name}` |
 | Graph | `GET /api/graph/company/{cuit}`, `GET /api/graph/unit/{code}`, `GET /api/graph/authorizer/{name}` |
 | Dashboard | `GET /api/dashboard/stats` |
-| Investigations | `GET|POST /api/investigations`, plus `/{id}` and its `chat`, `notes`, `reports`, `status`, `subjects`, `prompt` sub-resources |
+| MCP | `POST /mcp` (Streamable HTTP; see [MCP server](#mcp-server-for-ai-agents)) |
 | Scraper control | `GET /api/scraper/status`, `POST /api/scraper/{start,stop,rescrape-open,refresh-indicators}` |
 | Meta | `GET /api/health`, `GET /api/health/deep` |
 
@@ -128,6 +169,9 @@ for the full list. The ones the backend cares about most:
 | `COIMA_RATE_LIMIT_PER_MINUTE` | `240` | Per-IP requests per 60s window (`0` disables) |
 | `COIMA_TRIGGER_COOLDOWN_SECONDS` | `60` | Min gap between expensive triggers (`0` disables) |
 | `COIMA_MAX_BODY_BYTES` | `1000000` | Request body cap (`0` disables) |
+| `COIMA_MCP_TOKEN` | — | If set, `/mcp` requires `Authorization: Bearer <token>` |
+| `COIMA_MCP_ALLOWED_HOSTS` | — | Extra `Host` values `/mcp` accepts besides localhost (comma-separated, e.g. `coima.lan:*`) |
+| `COIMA_MCP_LOCALE` | `es` | Language of check labels in MCP tool output (`es` / `en`) |
 
 Which checks are enabled, their weights and their thresholds are derived from
 the registered checks and overlaid with user overrides edited from the

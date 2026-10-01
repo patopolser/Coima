@@ -19,7 +19,7 @@ Hay una instancia pública en **[coima-demo.com](https://coima-demo.com)**. Sirv
 censurados**: compradores, proveedores y funcionarios se muestran bajo seudónimos
 estables, de modo que los patrones e indicadores de riesgo son genuinos sin que se
 atribuya ningún nombre real a un hallazgo. La demo es de solo lectura y no expone
-el control del scraper ni las herramientas de investigación.
+el control del scraper ni el servidor MCP.
 
 ## Objetivo
 
@@ -29,8 +29,9 @@ un grafo, corre sobre él una batería de detectores de señales de alerta
 (ganadores en serie, patrones de competencia anómalos, indicadores de rotación
 de ofertas, posible fraccionamiento de contratos, clústeres de contactos
 compartidos, indicadores de sesgo de autorizantes, etc.), asigna puntajes de
-riesgo a los proveedores y expone todo a través de un panel con un espacio de
-investigación asistido por IA.
+riesgo a los proveedores y expone todo a través de un panel y de un
+[servidor MCP](#investigar-con-agentes-de-ia-mcp) que agentes de IA como Claude
+Code y Codex usan para investigar los datos.
 
 El objetivo es convertir registros de licitaciones dispersos en **pistas
 priorizadas y consultables para revisión humana** por periodistas y auditores,
@@ -63,8 +64,8 @@ contratar.gob.ar ┘                (sistema de     (una consulta   (SQLite)
 | Carpeta | Qué es | Más información |
 |---|---|---|
 | `scraper/` | Extrae datos de ambos portales de compras e ingiere datos estructurados en Neo4j. Corre como CLI de una sola ejecución o como supervisor controlable desde el backend. | [scraper/README.md](scraper/README.md) · [SCHEMA.md](scraper/SCHEMA.md) |
-| `backend/` | Servicio FastAPI y motor de detección: corre los detectores, calcula puntajes de riesgo, sirve perfiles de entidades y datos de grafo, gestiona investigaciones asistidas por IA y controla el scraper. | [backend/README.md](backend/README.md) · [CHECKS.md](backend/src/detector/checks/CHECKS.md) |
-| `frontend/` | Aplicación de página única en React + Vite: panel, puntajes de riesgo, hallazgos de chequeos, perfiles de entidades, explorador de grafo, control del scraper y espacio de investigación. | [frontend/README.md](frontend/README.md) |
+| `backend/` | Servicio FastAPI y motor de detección: corre los detectores, calcula puntajes de riesgo, sirve perfiles de entidades y datos de grafo, expone el servidor MCP para agentes de IA y controla el scraper. | [backend/README.md](backend/README.md) · [CHECKS.md](backend/src/detector/checks/CHECKS.md) |
+| `frontend/` | Aplicación de página única en React + Vite: panel, puntajes de riesgo, hallazgos de chequeos, perfiles de entidades, explorador de grafo y control del scraper. | [frontend/README.md](frontend/README.md) |
 | `infra/` | Docker Compose, Dockerfiles por servicio y la configuración de nginx que une las cuatro piezas. | — |
 
 > Los README de cada módulo están en inglés, igual que los comentarios del código.
@@ -93,6 +94,32 @@ el progreso del scraper.
 > Este stack está pensado para **uso local o de confianza**: publica Neo4j y el
 > backend en el host y deja abierta la superficie de administración. No lo
 > expongas a internet tal cual está — ver [SECURITY.md](SECURITY.md).
+
+## Investigar con agentes de IA (MCP)
+
+Coima incluye un servidor [MCP](https://modelcontextprotocol.io) para investigar
+desde **Claude Code** o **Codex** con tu propia suscripción: no hay que
+configurar claves de IA en Coima. El agente obtiene herramientas para rankear y
+perfilar proveedores, unidades y funcionarios, explicar puntajes de riesgo,
+mapear redes de colusión, inspeccionar procesos, correr Cypher de solo lectura
+y llevar casos de investigación (notas y reportes) que persisten entre sesiones.
+
+Con el stack de Docker corriendo, el servidor está en `http://localhost:8000/mcp`.
+
+- **Claude Code**: abrir el repositorio; el [`.mcp.json`](.mcp.json) del
+  proyecto registra `coima` automáticamente (aprobarlo la primera vez y
+  verificar con `/mcp`). Desde otra carpeta:
+  `claude mcp add --transport http coima http://localhost:8000/mcp`.
+- **Codex**: agregar en `~/.codex/config.toml`:
+
+  ```toml
+  [mcp_servers.coima]
+  url = "http://localhost:8000/mcp"
+  ```
+
+Después pedir, por ejemplo, *"Investigá el CUIT 30-12345678-9 y registrá lo que
+encuentres"*. El uso sin Docker, el token opcional y la lista completa de
+herramientas están en [backend/README.md](backend/README.md#mcp-server-for-ai-agents).
 
 ## Controlar el scraper
 

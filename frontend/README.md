@@ -2,7 +2,7 @@
 
 React + Vite single-page app. It reads the [backend](../backend/README.md) API
 and renders the dashboard, risk scores, check findings, entity profiles, the
-graph explorer, scraper control and the investigation workspace.
+graph explorer and scraper control.
 
 > Everything shown is a **statistical, heuristic risk indicator**, never an
 > accusation. See [DISCLAIMER.md](../DISCLAIMER.md). The `DisclaimerBanner`,
@@ -64,7 +64,6 @@ frontend/
 | `/authorizers` `/authorizers/:name` | Authorizers | Officials who signed contractual documents |
 | `/checks/:key` | CheckDetail | Every finding of one detector, paginated |
 | `/graph` | GraphExplorer | Cytoscape relationship browser around an entity |
-| `/investigations` | Investigations | Cases, subjects, AI chat, generated reports |
 | `/scraper` | Scraper | Run state, progress, start/stop |
 | `/settings` | Settings | Toggle checks, tune weights and thresholds |
 

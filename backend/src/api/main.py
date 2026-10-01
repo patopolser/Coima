@@ -2,9 +2,10 @@
 src/api/main.py - FastAPI application entry point.
 
 Wires up routers, CORS, the basic API protections from src/api/security.py,
-and the lifespan that owns the Neo4j driver and the SQLite engine. The driver
-is created once on startup and torn down on shutdown so request handlers can
-share the connection pool.
+the MCP server endpoint at /mcp (src/mcp_server), and the lifespan that owns
+the Neo4j driver and the SQLite engine. The driver is created once on startup
+and torn down on shutdown so request handlers and MCP tools share the
+connection pool.
 """
 
 from __future__ import annotations
@@ -25,8 +26,9 @@ if _PROJECT_ROOT not in sys.path:
 from .config import get_settings
 from .database import neo4j as neo4j_db
 from .database import sqlite as sqlite_db
-from .routers import detection, risk_scores, checks, companies, units, authorizers, investigations, graph, dashboard, scraper, config_router
+from .routers import detection, risk_scores, checks, companies, units, authorizers, graph, dashboard, scraper, config_router
 from .security import BodySizeLimitMiddleware, RateLimitMiddleware, SecurityHeadersMiddleware
+from src.mcp_server.http import MCPHttpEndpoint
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,20 +58,22 @@ async def lifespan(app: FastAPI):
     sqlite_db.init_db(settings.sqlite_path)
     logger.info("SQLite ready.")
 
-    yield
+    async with _mcp_endpoint.lifespan():
+        yield
 
     logger.info("Shutting down. Closing Neo4j driver.")
     neo4j_db.close_driver()
 
 
 _settings = get_settings()
+_mcp_endpoint = MCPHttpEndpoint(token=_settings.mcp_token, extra_hosts=_settings.mcp_allowed_hosts)
 
 app = FastAPI(
     title="Coima API",
     description=(
         "REST API for the Coima corruption-detection platform. "
         "Provides detection runs, risk scores, check findings, company/unit profiles, "
-        "investigations with AI chat, and graph visualization data."
+        "graph visualization data, and an MCP server at /mcp for AI agents."
     ),
     version="2.0.0",
     lifespan=lifespan,
@@ -102,11 +106,14 @@ app.include_router(checks.router)
 app.include_router(companies.router)
 app.include_router(units.router)
 app.include_router(authorizers.router)
-app.include_router(investigations.router)
 app.include_router(graph.router)
 app.include_router(dashboard.router)
 app.include_router(scraper.router)
 app.include_router(config_router.router)
+
+# MCP over Streamable HTTP for AI agents (Claude Code, Codex). Same tools as
+# the stdio server started by `python run.py --mcp`.
+app.add_route("/mcp", _mcp_endpoint, include_in_schema=False)
 
 
 @app.get("/api/health", tags=["meta"])

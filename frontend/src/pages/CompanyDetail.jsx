@@ -36,10 +36,6 @@ export default function CompanyDetail() {
             <p className="page-subtitle text-mono">{t('companyDetail.cuit', { cuit })}</p>
             <LegalNote />
           </div>
-          <button className="btn btn-primary" onClick={() => navigate(`/investigations/new?subject_type=company&subject_id=${cuit}&subject_name=${rs?.company || ''}`)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            {t('companyDetail.investigate')}
-          </button>
         </div>
       </div>
 

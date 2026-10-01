@@ -14,7 +14,6 @@
   "nav": {
     "dashboard": "Panel",
     "providers": "Proveedores",
-    "investigations": "Investigaciones",
     "graph": "Grafo",
     "units": "Unidades",
     "authorizers": "Autorizadores",
@@ -85,55 +84,6 @@
     "flags": "Banderas",
     "confidence": "Confianza"
   },
-  "investigations": {
-    "title": "Investigaciones",
-    "subtitle": "Casos de análisis de corrupción asistido por IA",
-    "new": "+ Nueva Investigación",
-    "emptyTitle": "Sin investigaciones",
-    "emptyText": "Cree su primera investigación para comenzar el análisis asistido por IA.",
-    "status": {
-      "open": "Abierta",
-      "in_progress": "En Progreso",
-      "closed": "Cerrada",
-      "archived": "Archivada"
-    }
-  },
-  "investigationNew": {
-    "title": "Nueva Investigación",
-    "subtitle": "Crear un caso de investigación asistido por IA",
-    "titleLabel": "Título",
-    "titlePlaceholder": "Título de la investigación…",
-    "subjectsLabel": "Sujetos",
-    "subjectCompany": "Empresa",
-    "subjectTender": "Licitación",
-    "idPlaceholder": "ID o CUIT",
-    "nameOptional": "Nombre (opcional)",
-    "creating": "Creando…",
-    "create": "Crear Investigación"
-  },
-  "investigationDetail": {
-    "beginTitle": "Iniciar Investigación",
-    "beginText": "Indique a la IA que analice entidades y descubra conexiones.",
-    "messagePlaceholder": "Enviar un mensaje…",
-    "subjects": "Sujetos",
-    "idOrCuit": "ID o CUIT",
-    "name": "Nombre",
-    "intelligenceLog": "Registro de Inteligencia",
-    "recordFindings": "Registrar hallazgos…",
-    "reports": "Informes",
-    "reportTypes": {
-      "executive_summary": "resumen ejecutivo",
-      "timeline": "cronología",
-      "network_analysis": "análisis de red",
-      "cartel_hypothesis": "hipótesis de cartel"
-    },
-    "claude": "Claude Sonnet",
-    "gemini": "Gemini Flash",
-    "deepseek": "DeepSeek NVIDIA",
-    "toolUsing": "Usando: {{tool}}",
-    "toolResults": "Resultados de: {{tool}}",
-    "viewCompany": "Ver Empresa →"
-  },
   "checkDetail": {
     "notFound": "Check no encontrado",
     "breadcrumb": "Panel",
@@ -146,7 +96,6 @@
     "breadcrumb": "Proveedores",
     "companyFallback": "Empresa {{cuit}}",
     "cuit": "CUIT: {{cuit}}",
-    "investigate": "Investigar",
     "riskProfile": "Perfil de Riesgo",
     "clearTitle": "Registro Limpio",
     "clearText": "No se detectaron vectores significativos de corrupción para esta empresa.",

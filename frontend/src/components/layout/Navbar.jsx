@@ -7,7 +7,6 @@ const navLinks = [
   { to: '/providers', labelKey: 'nav.providers' },
   { to: '/units', labelKey: 'nav.units' },
   { to: '/authorizers', labelKey: 'nav.authorizers' },
-  { to: '/investigations', labelKey: 'nav.investigations' },
   { to: '/graph', labelKey: 'nav.graph' },
   { to: '/scraper', labelKey: 'nav.scraper' },
   { to: '/settings', labelKey: 'nav.settings' },

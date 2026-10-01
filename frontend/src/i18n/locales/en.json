@@ -14,7 +14,6 @@
   "nav": {
     "dashboard": "Dashboard",
     "providers": "Providers",
-    "investigations": "Investigations",
     "graph": "Graph",
     "units": "Units",
     "authorizers": "Authorizers",
@@ -85,55 +84,6 @@
     "flags": "Flags",
     "confidence": "Confidence"
   },
-  "investigations": {
-    "title": "Investigations",
-    "subtitle": "AI-assisted corruption analysis cases",
-    "new": "+ New Investigation",
-    "emptyTitle": "No investigations",
-    "emptyText": "Create your first investigation to begin AI-assisted analysis.",
-    "status": {
-      "open": "Open",
-      "in_progress": "In Progress",
-      "closed": "Closed",
-      "archived": "Archived"
-    }
-  },
-  "investigationNew": {
-    "title": "New Investigation",
-    "subtitle": "Create an AI-assisted investigation case",
-    "titleLabel": "Title",
-    "titlePlaceholder": "Investigation title…",
-    "subjectsLabel": "Subjects",
-    "subjectCompany": "Company",
-    "subjectTender": "Tender",
-    "idPlaceholder": "ID or CUIT",
-    "nameOptional": "Name (optional)",
-    "creating": "Creating…",
-    "create": "Create Investigation"
-  },
-  "investigationDetail": {
-    "beginTitle": "Begin Investigation",
-    "beginText": "Command the AI to analyze entities and unearth connections.",
-    "messagePlaceholder": "Send a message…",
-    "subjects": "Subjects",
-    "idOrCuit": "ID or CUIT",
-    "name": "Name",
-    "intelligenceLog": "Intelligence Log",
-    "recordFindings": "Record findings…",
-    "reports": "Reports",
-    "reportTypes": {
-      "executive_summary": "executive summary",
-      "timeline": "timeline",
-      "network_analysis": "network analysis",
-      "cartel_hypothesis": "cartel hypothesis"
-    },
-    "claude": "Claude Sonnet",
-    "gemini": "Gemini Flash",
-    "deepseek": "DeepSeek NVIDIA",
-    "toolUsing": "Using: {{tool}}",
-    "toolResults": "Results from: {{tool}}",
-    "viewCompany": "View Company →"
-  },
   "checkDetail": {
     "notFound": "Check not found",
     "breadcrumb": "Dashboard",
@@ -146,7 +96,6 @@
     "breadcrumb": "Providers",
     "companyFallback": "Company {{cuit}}",
     "cuit": "CUIT: {{cuit}}",
-    "investigate": "Investigate",
     "riskProfile": "Risk Profile",
     "clearTitle": "Clear Record",
     "clearText": "No significant corruption vectors detected for this company.",

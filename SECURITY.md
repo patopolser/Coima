@@ -18,9 +18,10 @@ This is a self-hosted application. The most relevant security concerns are:
 
 - **Secrets handling.** API keys and the Neo4j password are read from environment
   variables (`COIMA_*`). Never commit a real `.env` file; only `.env.example` is tracked.
-- **AI API keys.** The backend can call third-party LLM providers (Claude, Gemini,
-  DeepSeek). Keys are optional and read from the environment; clients degrade gracefully
-  when unset.
+- **MCP endpoint.** `POST /mcp` lets AI agents read detection results, run read-only
+  Cypher (enforced by a READ-access Neo4j transaction) and write investigation notes and
+  reports. It only accepts `localhost` Host headers by default; set `COIMA_MCP_TOKEN` to
+  also require a bearer token. Coima itself calls no third-party AI provider.
 - **Exposure.** The backend and Neo4j browser are intended for trusted/local deployment.
   Do not expose them to the public internet without authentication and a reverse proxy.
 

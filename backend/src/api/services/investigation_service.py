@@ -1,5 +1,7 @@
 """
 src/api/services/investigation_service.py - Investigation CRUD over SQLite.
+
+Cases, subjects, notes and reports written by AI agents through the MCP server.
 """
 
 from __future__ import annotations
@@ -14,17 +16,14 @@ from sqlalchemy.orm import Session
 
 from ..database.sqlite import (
     Investigation,
-    InvestigationMessage,
     InvestigationNote,
     InvestigationReport,
     InvestigationSubject,
 )
 from ..schemas.investigation import (
-    AddSubjectRequest,
     InvestigationDetail,
     InvestigationSummary,
     NoteSchema,
-    ChatMessageSchema,
     ReportSchema,
     SubjectSchema,
 )
@@ -64,17 +63,6 @@ def _inv_to_detail(inv: Investigation) -> InvestigationDetail:
         ],
         notes=[
             NoteSchema(id=n.id, created_at=n.created_at, text=n.text) for n in inv.notes
-        ],
-        chat_history=[
-            ChatMessageSchema(
-                id=m.id,
-                role=m.role,
-                content=m.content,
-                tool_calls=json.loads(m.tool_calls) if m.tool_calls else None,
-                tool_results=json.loads(m.tool_results) if m.tool_results else None,
-                created_at=m.created_at,
-            )
-            for m in inv.messages
         ],
         reports=[
             ReportSchema(id=r.id, type=r.type, content=r.content, created_at=r.created_at)
@@ -170,7 +158,7 @@ def set_status(db: Session, inv_id: str, status: str) -> Optional[InvestigationD
     return _inv_to_detail(inv)
 
 
-def add_subject(db: Session, inv_id: str, req: AddSubjectRequest) -> Optional[InvestigationDetail]:
+def add_subject(db: Session, inv_id: str, req: SubjectSchema) -> Optional[InvestigationDetail]:
     inv = db.get(Investigation, inv_id)
     if not inv:
         return None
@@ -205,32 +193,6 @@ def add_note(db: Session, inv_id: str, text: str) -> Optional[InvestigationDetai
     db.commit()
     db.refresh(inv)
     return _inv_to_detail(inv)
-
-
-def add_chat_message(
-    db: Session,
-    inv_id: str,
-    role: str,
-    content: str,
-    tool_calls: Optional[list] = None,
-    tool_results: Optional[list] = None,
-) -> Optional[InvestigationMessage]:
-    inv = db.get(Investigation, inv_id)
-    if not inv:
-        return None
-    msg = InvestigationMessage(
-        id=_generate_id("msg"),
-        investigation_id=inv_id,
-        role=role,
-        content=content,
-        tool_calls=json.dumps(tool_calls) if tool_calls else None,
-        tool_results=json.dumps(tool_results) if tool_results else None,
-        created_at=_now(),
-    )
-    db.add(msg)
-    inv.updated_at = _now()
-    db.commit()
-    return msg
 
 
 def add_report(
