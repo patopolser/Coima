@@ -8,7 +8,55 @@ COMPR.AR and CONTRAT.AR portals; every `Process` has `source` = `comprar` or
 ### Node types
 
 | Label | Key property | Description |
-|
+|---|---|---|
+| `Process` | `process_number` | Central procurement process |
+| `Organization` | `saf_code` | Servicio Administrativo Financiero (buying entity) |
+| `ContractingUnit` | `(code, source)` | Unidad Operativa de Contrataciones (UOC) |
+| `Provider` | `cuit` | Supplier or bidder registered in SIPRO |
+| `LineItem` | `(process_number, line_number)` | Renglón declared in the pliego |
+| `ProcurementRequest` | `(request_number, source)` | Solicitud de Contratación (SCO) |
+| `Bid` | `(process_number, provider_cuit)` | One offer per provider per process |
+| `BidLine` | `(process_number, provider_cuit, line_number, alternative_number)` | One renglón × alternative within a bid |
+| `ContractualDocument` | `(document_number, source)` | Purchase Order (OC) or Open Purchase Order (OCA) |
+| `ContractLine` | `(document_number, source, line_number, alternative_number)` | Renglón inside a purchase order |
+| `ProvisionRequest` | `request_number` | Solicitud de Provisión (SPR), call-off against an OCA |
+| `ProvisionRequestLine` | `(request_number, line_number, alternative_number)` | Line item in an SPR |
+| `Authorizer` | `full_name` | Government official who signs a document |
+| `GDEDocument` | `gde_number` | GDE-system attachment on a process |
+| `Penalty` | `(process_number, number)` | Penalty clause in the process |
+| `Dictamen` | `(process_number, source, sequence)` | Pre-award opinion (CONTRAT.AR) |
+| `DictamenSigner` | `username` | Dictamen committee member (portal username) |
+| `InflationIndex` | `(series_id, period)` | Monthly CPI observation (INDEC) |
+| `ExchangeRate` | `(currency, observed_date, rate_type)` | Daily FX rate (BCRA) |
+| `Address` / `Phone` / `Email` | `value_key` | Normalized contact value, shared across entities |
+
+### Relationships
+
+| From | Relationship | To | Notes |
+|---|---|---|---|
+| `Process` | `MANAGED_BY` | `ContractingUnit` | |
+| `ContractingUnit` | `BELONGS_TO` | `Organization` | |
+| `Process` | `HAS_LINE_ITEM` | `LineItem` | |
+| `Process` | `HAS_REQUEST` | `ProcurementRequest` | |
+| `Process` | `HAS_BID` | `Bid` | |
+| `Process` | `HAS_PENALTY` | `Penalty` | |
+| `Process` | `HAS_DOCUMENT` | `GDEDocument` | |
+| `Process` | `GENERATES` | `ContractualDocument` | |
+| `Process` | `INVITES` | `Provider` | CDI/LPU only |
+| `Process` | `HAS_DICTAMEN` | `Dictamen` | CONTRAT.AR only |
+| `Bid` | `SUBMITTED_BY` | `Provider` | |
+| `Bid` | `HAS_BID_LINE` | `BidLine` | |
+| `BidLine` / `ContractLine` / `ProvisionRequestLine` | `FOR_LINE_ITEM` | `LineItem` | |
+| `ContractualDocument` | `HAS_CONTRACT_LINE` | `ContractLine` | |
+| `ContractualDocument` | `AWARDED_TO` | `Provider` | |
+| `ContractualDocument` / `ProvisionRequest` | `AUTHORIZED_BY` | `Authorizer` | |
+| `ContractualDocument` | `HAS_PROVISION_REQUEST` | `ProvisionRequest` | OCA only |
+| `ProvisionRequest` | `HAS_PROVISION_LINE` | `ProvisionRequestLine` | |
+| `ProvisionRequest` | `FULFILLED_BY` | `Provider` | |
+| `Dictamen` | `EVALUATED_BY` | `DictamenSigner` | role, status |
+| `Dictamen` | `PRE_ADJUDICATES` / `REJECTED` | `Provider` | See key properties |
+| `Provider` / `Organization` / `ContractingUnit` | `HAS_ADDRESS` / `HAS_PHONE` / `HAS_EMAIL` | `Address` / `Phone` / `Email` | |
+| amount-bearing nodes | `VALUED_AT_INFLATION` / `VALUED_AT_FX` | `InflationIndex` / `ExchangeRate` | See Money |
 
 ### Key properties
 
