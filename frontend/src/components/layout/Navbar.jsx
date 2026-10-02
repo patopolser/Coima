@@ -82,7 +82,7 @@ export default function Navbar() {
               aria-current={active === link ? 'page' : undefined}
               title={t(link.labelKey)}
             >
-              <link.Icon size={17} />
+              <link.Icon size={16} />
               <span className="nav-label">{t(link.labelKey)}</span>
             </NavLink>
           ))}
@@ -122,7 +122,7 @@ export default function Navbar() {
               end={link.exact}
               className={`nav-link ${active === link ? 'active' : ''}`}
             >
-              <link.Icon size={17} />
+              <link.Icon size={16} />
               {t(link.labelKey)}
             </NavLink>
           ))}

@@ -38,7 +38,17 @@
   z-index: -1;
 }
 
-/* Specular highlight that tracks the pointer. */
+/* Specular highlight that tracks the pointer. The hover boost animates the
+   gradient alpha through a registered property instead of `opacity`: an
+   opacity transition promotes the layer to the compositor for its duration,
+   and the content above it (nav icons) re-snaps to the pixel grid on the way
+   in and out, which reads as a jitter. */
+@property --glass-shine {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0.35;
+}
+
 .glass::after {
   content: '';
   position: absolute;
@@ -46,11 +56,10 @@
   border-radius: inherit;
   background: radial-gradient(
     240px circle at var(--mx, 20%) var(--my, 0%),
-    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, calc(0.55 * var(--glass-shine, 0.35))),
     rgba(255, 255, 255, 0) 60%
   );
-  opacity: var(--glass-shine, 0.35);
-  transition: opacity var(--dur-hover) var(--ease-hover);
+  transition: --glass-shine var(--dur-hover) var(--ease-hover);
   pointer-events: none;
   z-index: -1;
 }
