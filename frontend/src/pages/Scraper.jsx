@@ -1,21 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { fetchScraperStatus, startScraper, stopScraper, rescrapeOpenProcesses, refreshScraperIndicators } from '../api/client'
-import { LoadingScreen } from '../components/ui'
+import { LoadingScreen, ErrorState, Menu, MenuItem, InfoTip } from '../components/ui'
+import { useToast } from '../components/ui/Toast'
+import { Reveal, AnimatedValue } from '../motion'
+import { IconMore, IconRefresh } from '../components/icons'
 import { useLang } from '../hooks/useLang'
 
 export default function Scraper() {
   const { t, locale } = useLang()
   const qc = useQueryClient()
+  const toast = useToast()
   const [resetProgress, setResetProgress] = useState(false)
   const [batchSize, setBatchSize] = useState('')
   const [rescrapeMonths, setRescrapeMonths] = useState('')
 
-  const { data: status, isLoading } = useQuery({
+  const { data: status, isLoading, error, refetch } = useQuery({
     queryKey: ['scraper-status'],
     queryFn: fetchScraperStatus,
     refetchInterval: 3000,
   })
+
+  const onDone = () => qc.invalidateQueries({ queryKey: ['scraper-status'] })
+  const onError = err => toast(err.detail || err.message)
 
   const startMut = useMutation({
     mutationFn: () => {
@@ -24,175 +31,115 @@ export default function Scraper() {
       if (Number.isFinite(parsed) && parsed > 0) body.batch_size = parsed
       return startScraper(body)
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['scraper-status'] }),
+    onSuccess: onDone,
+    onError,
   })
-  const stopMut = useMutation({
-    mutationFn: stopScraper,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['scraper-status'] }),
-  })
+  const stopMut = useMutation({ mutationFn: stopScraper, onSuccess: onDone, onError })
   const rescrapeMut = useMutation({
     mutationFn: () => {
       const parsed = parseInt(rescrapeMonths, 10)
       return rescrapeOpenProcesses(Number.isFinite(parsed) && parsed > 0 ? parsed : undefined)
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['scraper-status'] }),
+    onSuccess: onDone,
+    onError,
   })
-  const refreshMut = useMutation({
-    mutationFn: refreshScraperIndicators,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['scraper-status'] }),
-  })
+  const refreshMut = useMutation({ mutationFn: refreshScraperIndicators, onSuccess: onDone, onError })
 
   if (isLoading) return <LoadingScreen />
+  if (error && !status) return <ErrorState error={error} onRetry={refetch} />
 
   const isRunning = !!status?.is_running
   const scraped = status?.processes_scraped_count ?? 0
   const target = status?.last_run_target_count ?? 0
   const run = status?.current_run || null
   const last = status?.last_run || null
-  const pct = target > 0 ? Math.min(100, Math.round((run?.succeeded ?? 0) / target * 100)) : 0
-  const fmt = (n) => (n ?? 0).toLocaleString(locale)
+  const pct = target > 0 ? Math.min(100, Math.round(((run?.succeeded ?? 0) / target) * 100)) : 0
+  const fmt = n => (n ?? 0).toLocaleString(locale)
 
   return (
-    <>
-      <div className="page-header">
+    <Reveal>
+      <div className="page-head">
         <h1 className="page-title">{t('scraper.title')}</h1>
-        <p className="page-subtitle">{t('scraper.subtitle')}</p>
-      </div>
-
-      {/* Status + controls */}
-      <div className="card card-body mb-8">
-        <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 16 }}>
-          <div className="flex items-center gap-3">
-            <span
-              style={{
-                width: 10, height: 10, borderRadius: '50%',
-                background: isRunning ? '#10b981' : '#7a829e',
-                boxShadow: isRunning ? '0 0 8px #10b981' : 'none',
-              }}
-            />
-            <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {isRunning ? t('scraper.running') : t('scraper.idle')}
-            </span>
-            {run?.current_process && (
-              <span className="text-mono text-xs text-muted">· {run.current_process}</span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-muted" style={{ cursor: isRunning ? 'not-allowed' : 'auto' }}>
-              {t('scraper.batchSize')}
-              <input
-                type="number"
-                min="1"
-                placeholder={t('scraper.batchSizePlaceholder')}
-                value={batchSize}
-                disabled={isRunning}
-                onChange={e => setBatchSize(e.target.value)}
-                style={{ width: 90, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-input, transparent)', color: 'var(--text-primary)' }}
-              />
-            </label>
-            <label className="flex items-center gap-2 text-sm text-muted" style={{ cursor: isRunning ? 'not-allowed' : 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={resetProgress}
-                disabled={isRunning}
-                onChange={e => setResetProgress(e.target.checked)}
-              />
-              {t('scraper.resetProgress')}
-            </label>
-            <button
-              className="btn btn-primary btn-sm"
-              disabled={isRunning || startMut.isPending}
-              onClick={() => startMut.mutate()}
-            >
-              {t('scraper.start')}
-            </button>
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={!isRunning || stopMut.isPending}
-              onClick={() => stopMut.mutate()}
-            >
+        <span className="chip"><span className={`status-dot ${isRunning ? 'on' : ''}`} />{isRunning ? t('scraper.running') : t('scraper.idle')}</span>
+        {run?.current_process && <span className="chip mono">{run.current_process}</span>}
+        <div className="page-head-actions">
+          <Menu label={t('scraper.more')} icon={<IconMore size={18} />} triggerClassName="btn btn-secondary btn-icon">
+            <div className="menu-section">
+              <span className="label">{t('scraper.rescrapeOpen')}</span>
+              <div className="row">
+                <label className="field">
+                  {t('scraper.rescrapeMonths')}
+                  <input type="number" min="1" className="input input-sm" style={{ width: 90 }}
+                    placeholder={t('scraper.rescrapeMonthsPlaceholder')} value={rescrapeMonths}
+                    disabled={isRunning} onChange={e => setRescrapeMonths(e.target.value)} />
+                </label>
+                <button type="button" className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-end' }}
+                  disabled={isRunning || rescrapeMut.isPending} onClick={() => rescrapeMut.mutate()}>
+                  {t('scraper.run')}
+                </button>
+              </div>
+            </div>
+            <div className="menu-sep" />
+            <MenuItem icon={<IconRefresh />} onClick={() => refreshMut.mutate()}>{t('scraper.refreshIndicators')}</MenuItem>
+          </Menu>
+          {isRunning ? (
+            <button type="button" className="btn btn-danger" disabled={stopMut.isPending} onClick={() => stopMut.mutate()}>
               {t('scraper.stop')}
             </button>
-            <label className="flex items-center gap-2 text-sm text-muted" style={{ cursor: isRunning ? 'not-allowed' : 'auto' }}>
-              {t('scraper.rescrapeMonths')}
-              <input
-                type="number"
-                min="1"
-                placeholder={t('scraper.rescrapeMonthsPlaceholder')}
-                value={rescrapeMonths}
-                disabled={isRunning}
-                onChange={e => setRescrapeMonths(e.target.value)}
-                style={{ width: 70, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-input, transparent)', color: 'var(--text-primary)' }}
-              />
-            </label>
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={isRunning || rescrapeMut.isPending}
-              onClick={() => rescrapeMut.mutate()}
-              title={t('scraper.rescrapeOpenHint')}
-            >
-              {t('scraper.rescrapeOpen')}
+          ) : (
+            <button type="button" className="btn btn-primary" disabled={startMut.isPending} onClick={() => startMut.mutate()}>
+              {t('scraper.start')}
             </button>
-            <button
-              className="btn btn-ghost btn-sm"
-              disabled={isRunning || refreshMut.isPending}
-              onClick={() => refreshMut.mutate()}
-            >
-              {t('scraper.refreshIndicators')}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-4 mb-8">
-        <div className="card kpi-card card-glow">
-          <div className="kpi-label">{t('scraper.totalScraped')}</div>
-          <div className="kpi-value">{fmt(scraped)}</div>
-        </div>
-        <div className="card kpi-card card-glow">
-          <div className="kpi-label">{t('scraper.lastRunTarget')}</div>
-          <div className="kpi-value">{fmt(target)}</div>
-        </div>
-        <div className="card kpi-card card-glow">
-          <div className="kpi-label">{t('scraper.succeeded')}</div>
-          <div className="kpi-value">{fmt(run?.succeeded)}</div>
-        </div>
-        <div className="card kpi-card card-glow">
-          <div className="kpi-label">{t('scraper.failed')}</div>
-          <div className="kpi-value">{fmt(run?.failed)}</div>
-        </div>
-      </div>
-
-      {/* Current-run progress */}
-      {isRunning && target > 0 && (
-        <div className="card card-body mb-8">
-          <div className="kpi-label mb-4">{t('scraper.currentRunProgress')}</div>
-          <div className="flex items-center gap-3">
-            <span className="text-mono font-semibold" style={{ minWidth: 44 }}>{pct}%</span>
-            <div style={{ flex: 1, height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ width: `${pct}%`, height: '100%', background: '#10b981', borderRadius: 3, transition: 'width 0.4s var(--ease)' }} />
-            </div>
-            <span className="text-xs text-muted">{fmt(run?.succeeded)} / {fmt(target)}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Last run summary */}
-      {last && (
-        <div className="card card-body">
-          <div className="kpi-label mb-4">{t('scraper.lastRun')}</div>
-          <div className="grid grid-4" style={{ gap: 12 }}>
-            <div><span className="text-xs text-muted">{t('scraper.succeeded')}</span><div className="font-semibold">{fmt(last.succeeded)}</div></div>
-            <div><span className="text-xs text-muted">{t('scraper.failed')}</span><div className="font-semibold">{fmt(last.failed)}</div></div>
-            <div><span className="text-xs text-muted">{t('scraper.skipped')}</span><div className="font-semibold">{fmt(last.skipped)}</div></div>
-            <div><span className="text-xs text-muted">{t('scraper.stoppedEarly')}</span><div className="font-semibold">{last.stopped_early ? t('scraper.yes') : t('scraper.no')}</div></div>
-          </div>
-          {last.finished_at && (
-            <div className="text-xs text-muted mt-4 text-mono">{t('scraper.finishedAt')}: {last.finished_at.slice(0, 19).replace('T', ' ')}</div>
           )}
         </div>
+      </div>
+
+      {!isRunning && (
+        <div className="list-toolbar" data-reveal="1">
+          <label className="field">
+            {t('scraper.batchSize')}
+            <input type="number" min="1" className="input input-sm" style={{ width: 110 }}
+              placeholder={t('scraper.batchSizePlaceholder')} value={batchSize} onChange={e => setBatchSize(e.target.value)} />
+          </label>
+          <label className="check" style={{ alignSelf: 'flex-end', height: 32 }}>
+            <input type="checkbox" checked={resetProgress} onChange={e => setResetProgress(e.target.checked)} />
+            {t('scraper.resetProgress')}
+          </label>
+        </div>
       )}
-    </>
+
+      <section className="card kpi-band" data-reveal="2" aria-label={t('scraper.summary')}>
+        <div className="kpi"><div className="kpi-label">{t('scraper.totalScraped')}</div><AnimatedValue className="kpi-value" value={scraped} format={fmt} /></div>
+        <div className="kpi"><div className="kpi-label">{t('scraper.lastRunTarget')}</div><AnimatedValue className="kpi-value" value={target} format={fmt} /></div>
+        <div className="kpi"><div className="kpi-label">{t('scraper.succeeded')}</div><AnimatedValue className="kpi-value" value={run?.succeeded ?? 0} format={fmt} /></div>
+        <div className="kpi"><div className="kpi-label">{t('scraper.failed')}</div><AnimatedValue className="kpi-value" value={run?.failed ?? 0} format={fmt} /></div>
+      </section>
+
+      {isRunning && target > 0 && (
+        <section className="card card-pad row" style={{ marginTop: 20 }} aria-label={t('scraper.progress')}>
+          <span className="tabular" style={{ fontWeight: 600, minWidth: 44 }}>{pct}%</span>
+          <span className="progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+            <span style={{ width: `${pct}%` }} />
+          </span>
+          <span className="label tabular">{fmt(run?.succeeded)} / {fmt(target)}</span>
+        </section>
+      )}
+
+      {last && (
+        <section className="card" style={{ marginTop: 20 }} data-reveal="3" aria-labelledby="last-run-title">
+          <div className="card-head">
+            <h2 id="last-run-title" className="section-title">{t('scraper.lastRun')}</h2>
+            {last.finished_at && <span className="chip mono">{last.finished_at.slice(0, 16).replace('T', ' ')}</span>}
+            {last.stopped_early && <span className="chip">{t('scraper.stoppedEarly')}</span>}
+            {last.error && <InfoTip>{last.error}</InfoTip>}
+          </div>
+          <div className="kpi-band" style={{ paddingTop: 0 }}>
+            <div className="kpi"><div className="kpi-label">{t('scraper.succeeded')}</div><span className="kpi-value tabular" style={{ fontSize: '1.5rem' }}>{fmt(last.succeeded)}</span></div>
+            <div className="kpi"><div className="kpi-label">{t('scraper.failed')}</div><span className="kpi-value tabular" style={{ fontSize: '1.5rem' }}>{fmt(last.failed)}</span></div>
+            <div className="kpi"><div className="kpi-label">{t('scraper.skipped')}</div><span className="kpi-value tabular" style={{ fontSize: '1.5rem' }}>{fmt(last.skipped)}</span></div>
+          </div>
+        </section>
+      )}
+    </Reveal>
   )
 }

@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { fetchAuthorizers } from '../api/client'
-import { SearchBar, Pagination, ScoreBar, LoadingScreen, ConfidenceMeter, FlagPillList } from '../components/ui'
+import { SearchBar, Pagination, ScoreBar, SignalCount, LoadingScreen, ErrorState, EmptyState, InfoTip } from '../components/ui'
+import { Reveal, useAnimatedList } from '../motion'
 import { encodeId } from '../utils/ids'
 import { useLang } from '../hooks/useLang'
 
@@ -11,62 +12,66 @@ export default function Authorizers() {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const bodyRef = useRef(null)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['authorizers', lang, page, search],
     queryFn: () => fetchAuthorizers({ page, per_page: 50, search }),
     placeholderData: keepPreviousData,
   })
+  const items = data?.items || []
+  useAnimatedList(bodyRef, items.map(a => a.authorizer).join('|'))
 
   if (isLoading) return <LoadingScreen />
+  if (error && !data) return <ErrorState error={error} onRetry={refetch} />
 
   return (
-    <>
-      <div className="page-header">
+    <Reveal>
+      <div className="page-head">
         <h1 className="page-title">{t('authorizers.title')}</h1>
-        <p className="page-subtitle">{t('authorizers.subtitle')}</p>
+        <span className="chip tabular">{(data?.total ?? 0).toLocaleString(locale)}</span>
       </div>
 
-      <SearchBar value={search} onChange={v => { setSearch(v); setPage(1) }} placeholder={t('authorizers.searchPlaceholder')} style={{ marginBottom: 16, maxWidth: 400 }} />
+      <div className="list-toolbar" data-reveal="1">
+        <SearchBar value={search} onChange={v => { setSearch(v); setPage(1) }} placeholder={t('authorizers.searchPlaceholder')} />
+      </div>
 
-      <div className="card" style={{ overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t('authorizers.name')}</th>
-                <th style={{ minWidth: 140 }}>{t('authorizers.riskScore')}</th>
-                <th>{t('authorizers.confidence')}</th>
-                <th>{t('authorizers.checks')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.items || []).map(a => {
-                const checks = Object.entries(a.check_counts || {})
-                  .filter(([, c]) => c > 0)
-                  .map(([flag, count]) => ({ flag, count }))
-                return (
-                <tr key={a.authorizer} className="clickable" onClick={() => navigate(`/authorizers/${encodeId(a.authorizer)}`)}>
-                  <td className="cell-bold truncate" style={{ maxWidth: 320 }}>{a.authorizer}</td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <ScoreBar score={a.risk_score} />
-                      {a.has_synergy && <span title="synergy" style={{ color: 'var(--risk-high)' }}>⚡</span>}
-                    </div>
-                  </td>
-                  <td><ConfidenceMeter value={a.confidence || 0} /></td>
-                  <td><FlagPillList items={checks} /></td>
+      <section className="card" data-reveal="2" style={{ overflow: 'hidden' }}>
+        {items.length === 0 ? (
+          <EmptyState title={t('common.noResults')} />
+        ) : (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('authorizers.name')}</th>
+                  <th>{t('common.risk')}</th>
+                  <th>
+                    <span className="th-inner">{t('common.signals')}<InfoTip align="end">{t('risk.caveatLong')}</InfoTip></span>
+                  </th>
                 </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex items-center justify-between" style={{ padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
-          <span className="text-xs text-muted">{t('common.results', { count: (data?.total ?? 0).toLocaleString(locale) })}</span>
+              </thead>
+              <tbody ref={bodyRef}>
+                {items.map(a => (
+                  <tr key={a.authorizer} data-key={a.authorizer} className="clickable" onClick={() => navigate(`/authorizers/${encodeId(a.authorizer)}`)}>
+                    <td className="cell-strong">
+                      <Link to={`/authorizers/${encodeId(a.authorizer)}`} className="cell-truncate" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+                        {a.authorizer}
+                      </Link>
+                    </td>
+                    <td><ScoreBar score={a.risk_score} /></td>
+                    <td><SignalCount value={a.confidence || 0} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="card-foot">
+          <span className="label">{t('common.results', { count: data?.total ?? 0, value: (data?.total ?? 0).toLocaleString(locale) })}</span>
           <Pagination page={data?.page || 1} totalPages={data?.total_pages || 1} onPageChange={setPage} />
         </div>
-      </div>
-    </>
+      </section>
+    </Reveal>
   )
 }

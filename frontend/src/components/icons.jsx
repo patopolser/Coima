@@ -1,4 +1,4 @@
-/** Inline SVG icons — stroke matches table accent styling */
+/** Inline SVG icons. Stroke icons inherit currentColor. */
 
 const iconProps = { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
 
@@ -54,61 +54,72 @@ export function normalizeContactType(type) {
   return 'other'
 }
 
-const US_STAR =
-  'M0,-1 L0.29,-0.31 L1,0 L0.29,0.31 L0,1 L-0.29,0.31 L-1,0 L-0.29,-0.31 Z'
-
-function usStarPositions(cantonW, cantonH) {
-  const positions = []
-  const rows = 9
-  for (let row = 0; row < rows; row += 1) {
-    const count = row % 2 === 0 ? 6 : 5
-    const y = cantonH * 0.12 + row * (cantonH * 0.76 / (rows - 1))
-    const xStep = cantonW / 6.2
-    const x0 = row % 2 === 1 ? xStep * 0.5 : xStep * 0.15
-    for (let col = 0; col < count; col += 1) {
-      positions.push([x0 + col * xStep, y])
-    }
-  }
-  return positions
-}
-
-export function FlagUS({ size = 20 }) {
-  const w = 19
-  const h = 10
-  const stripeH = h / 13
-  const cantonW = w * 0.538
-  const cantonH = stripeH * 7
-  const displayH = Math.round(size * (h / w))
-  const starR = 0.28
-
+// UI icons (navigation, actions). 16px by default, stroke 1.75.
+function Icon({ size = 16, className, children, strokeWidth = 1.75, style }) {
   return (
-    <svg width={size} height={displayH} viewBox={`0 0 ${w} ${h}`} className="lang-flag" aria-hidden>
-      {Array.from({ length: 13 }, (_, i) => (
-        <rect
-          key={`stripe-${i}`}
-          x={0}
-          y={i * stripeH}
-          width={w}
-          height={stripeH}
-          fill={i % 2 === 0 ? '#B22234' : '#FFFFFF'}
-        />
-      ))}
-      <rect x={0} y={0} width={cantonW} height={cantonH} fill="#3C3B6E" />
-      <g fill="#FFFFFF">
-        {usStarPositions(cantonW, cantonH).map(([cx, cy], i) => (
-          <path key={i} d={US_STAR} transform={`translate(${cx} ${cy}) scale(${starR})`} />
-        ))}
-      </g>
+    <svg {...iconProps} width={size} height={size} strokeWidth={strokeWidth} className={className} style={style}>
+      {children}
     </svg>
   )
 }
 
-export function FlagAR({ size = 18 }) {
-  return (
-    <svg width={size} height={Math.round(size * 0.67)} viewBox="0 0 18 12" className="lang-flag" aria-hidden>
-      <rect width="18" height="12" fill="#74acdf" />
-      <rect y="4" width="18" height="4" fill="#fff" />
-      <circle cx="9" cy="6" r="1.6" fill="#f6b40e" />
-    </svg>
-  )
-}
+export const IconPanel = p => (
+  <Icon {...p}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></Icon>
+)
+export const IconBuilding = p => (
+  <Icon {...p}><rect x="5" y="3" width="14" height="18" rx="1.5" /><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1M10 21v-3h4v3" /></Icon>
+)
+export const IconLandmark = p => (
+  <Icon {...p}><path d="M3 21h18M5 21V10M9.5 21V10M14.5 21V10M19 21V10M2 10l10-6 10 6z" /></Icon>
+)
+export const IconUser = p => (
+  <Icon {...p}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></Icon>
+)
+export const IconNetwork = p => (
+  <Icon {...p}><circle cx="12" cy="5" r="2.5" /><circle cx="5" cy="19" r="2.5" /><circle cx="19" cy="19" r="2.5" /><path d="M10.8 7.2 6.2 16.8M13.2 7.2l4.6 9.6M7.5 19h9" /></Icon>
+)
+export const IconSearch = p => (
+  <Icon {...p}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.6-3.6" /></Icon>
+)
+export const IconMore = p => (
+  <Icon {...p} strokeWidth={2.5}><path d="M5 12h.01M12 12h.01M19 12h.01" /></Icon>
+)
+export const IconInfo = p => (
+  <Icon {...p}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></Icon>
+)
+export const IconChevronRight = p => (
+  <Icon {...p}><path d="m9 6 6 6-6 6" /></Icon>
+)
+export const IconChevronDown = p => (
+  <Icon {...p}><path d="m6 9 6 6 6-6" /></Icon>
+)
+export const IconArrowRight = p => (
+  <Icon {...p}><path d="M5 12h14M13 6l6 6-6 6" /></Icon>
+)
+export const IconArrowLeft = p => (
+  <Icon {...p}><path d="M19 12H5M11 6l-6 6 6 6" /></Icon>
+)
+export const IconClose = p => (
+  <Icon {...p}><path d="M6 6l12 12M18 6 6 18" /></Icon>
+)
+export const IconCheck = p => (
+  <Icon {...p}><path d="M5 12.5 10 17l9-10" /></Icon>
+)
+export const IconAlert = p => (
+  <Icon {...p}><path d="M12 4 2.5 20h19z" /><path d="M12 10v4M12 17h.01" /></Icon>
+)
+export const IconRefresh = p => (
+  <Icon {...p}><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4" /></Icon>
+)
+export const IconSettings = p => (
+  <Icon {...p}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></Icon>
+)
+export const IconServer = p => (
+  <Icon {...p}><rect x="3" y="4" width="18" height="7" rx="1.5" /><rect x="3" y="13" width="18" height="7" rx="1.5" /><path d="M7 7.5h.01M7 16.5h.01" /></Icon>
+)
+export const IconMenu = p => (
+  <Icon {...p}><path d="M4 7h16M4 12h16M4 17h16" /></Icon>
+)
+export const IconSort = ({ dir, ...p }) => (
+  <Icon {...p} size={p.size ?? 12}>{dir === 'asc' ? <path d="m6 15 6-6 6 6" /> : <path d="m6 9 6 6 6-6" />}</Icon>
+)

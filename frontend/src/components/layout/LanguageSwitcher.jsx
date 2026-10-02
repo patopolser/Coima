@@ -1,10 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { FlagAR, FlagUS } from '../icons'
 
 const LANGUAGES = [
-  { code: 'en', Flag: FlagUS, labelKey: 'language.en' },
-  { code: 'es', Flag: FlagAR, labelKey: 'language.es' },
+  { code: 'es', labelKey: 'language.es' },
+  { code: 'en', labelKey: 'language.en' },
 ]
 
 export default function LanguageSwitcher() {
@@ -15,22 +14,22 @@ export default function LanguageSwitcher() {
   const setLang = (lang) => {
     if (lang === current) return
     i18n.changeLanguage(lang)
+    // Check labels and descriptions are localized server-side.
     qc.invalidateQueries()
   }
 
   return (
-    <div className="lang-switcher" role="group" aria-label={t('language.ariaLabel')}>
-      {LANGUAGES.map(({ code, Flag, labelKey }) => (
+    <div className="lang-switch" role="group" aria-label={t('language.ariaLabel')}>
+      {LANGUAGES.map(({ code, labelKey }) => (
         <button
           key={code}
           type="button"
-          className={`lang-switcher-btn ${current === code ? 'active' : ''}`}
           onClick={() => setLang(code)}
           aria-label={t(labelKey)}
           aria-pressed={current === code}
           title={t(labelKey)}
         >
-          <Flag size={20} />
+          {code.toUpperCase()}
         </button>
       ))}
     </div>

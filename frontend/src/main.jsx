@@ -9,7 +9,8 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60_000,
-      retry: 1,
+      // A 404 is an answer, not a transient failure: don't retry it.
+      retry: (count, err) => err?.status !== 404 && count < 1,
       refetchOnWindowFocus: false,
     },
   },

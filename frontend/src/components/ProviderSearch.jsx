@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useId } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { fetchRiskScores } from '../api/client'
+import { usePresence } from '../motion'
+import { IconSearch } from './icons'
 
 // Default behaviour: search providers by company name or CUIT (backed by the
 // risk-scores endpoint, which matches both) and emit { cuit, company }.
@@ -67,37 +69,40 @@ export default function ProviderSearch({
     } else if (e.key === 'Escape') { setOpen(false) }
   }
 
+  const showList = open && results.length > 0
+  const { mounted, ref: listRef } = usePresence(showList)
+  const listId = useId()
+
   return (
-    <div ref={boxRef} style={{ position: 'relative', ...style }}>
+    <div ref={boxRef} className="ac search-field" style={style}>
+      <IconSearch className="search-field-icon" />
       <input
         className="input"
         value={query}
         autoFocus={autoFocus}
+        role="combobox"
+        aria-expanded={showList}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        aria-label={placeholder ?? t('common.searchProvider')}
         onChange={e => { setQuery(e.target.value); setOpen(true); setHighlight(0) }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
         placeholder={placeholder ?? t('common.searchProvider')}
       />
-      {open && results.length > 0 && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
-          background: 'var(--bg-elevated)', border: '1px solid var(--border-hover)',
-          borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.4))',
-          maxHeight: 280, overflowY: 'auto',
-        }}>
+      {mounted && (
+        <div ref={listRef} id={listId} role="listbox" className="ac-list glass glass-strong">
           {results.map((item, i) => (
             <div
               key={source.getKey(item)}
+              role="option"
+              aria-selected={i === highlight}
+              className="ac-item"
               onMouseDown={e => { e.preventDefault(); choose(item) }}
               onMouseEnter={() => setHighlight(i)}
-              style={{
-                display: 'flex', flexDirection: 'column', gap: 2, padding: '8px 12px', cursor: 'pointer',
-                background: i === highlight ? 'var(--bg-glass)' : 'transparent',
-                borderBottom: i < results.length - 1 ? '1px solid var(--border)' : 'none',
-              }}
             >
-              <span className="text-sm font-semibold truncate">{source.getPrimary(item)}</span>
-              <span className="text-xs text-muted cell-mono">{source.getSecondary(item)}</span>
+              <span className="ac-primary truncate">{source.getPrimary(item)}</span>
+              {source.getSecondary(item) && <span className="ac-secondary">{source.getSecondary(item)}</span>}
             </div>
           ))}
         </div>

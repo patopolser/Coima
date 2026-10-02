@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   fetchGraphCompany, fetchGraphUnit, fetchGraphAuthorizer,
   fetchUnits, fetchAuthorizers,
@@ -8,6 +8,9 @@ import cytoscape from 'cytoscape'
 import fcose from 'cytoscape-fcose'
 import { useTranslation } from 'react-i18next'
 import ProviderSearch from '../components/ProviderSearch'
+import { useToast } from '../components/ui/Toast'
+import { Reveal } from '../motion'
+import { IconClose, IconExternal, IconArrowRight } from '../components/icons'
 import { encodeId } from '../utils/ids'
 
 cytoscape.use(fcose)
@@ -39,19 +42,21 @@ const LAYOUT = {
 // into a single expandable "N processes" cluster node.
 const CLUSTER_THRESHOLD = 12
 
+// Node palette for a light canvas: mid-saturation fills with a darker rim so
+// shapes read on white; hue still separates entity types.
 const NODE_COLORS = {
-  Provider: { bg: '#8b5cf6', border: '#7c3aed' },
-  Process: { bg: '#3b82f6', border: '#2563eb' },
-  ContractualDocument: { bg: '#10b981', border: '#059669' },
-  Email: { bg: '#f97316', border: '#ea580c' },
-  Phone: { bg: '#14b8a6', border: '#0d9488' },
-  Address: { bg: '#f43f5e', border: '#e11d48' },
-  ContractingUnit: { bg: '#64748b', border: '#475569' },
-  Authorizer: { bg: '#eab308', border: '#ca8a04' },
-  Bid: { bg: '#a855f7', border: '#9333ea' },
-  Cluster: { bg: '#4338ca', border: '#6366f1' },
+  Provider: { bg: '#2b7bb0', border: '#075f87' },
+  Process: { bg: '#8fc3e0', border: '#4f93ba' },
+  ContractualDocument: { bg: '#7cc3a0', border: '#3f8f69' },
+  Email: { bg: '#f0a868', border: '#c47a35' },
+  Phone: { bg: '#79c9c0', border: '#3b9a90' },
+  Address: { bg: '#e99aa6', border: '#c2606f' },
+  ContractingUnit: { bg: '#8a9bb0', border: '#55677d' },
+  Authorizer: { bg: '#d9b45c', border: '#9a752f' },
+  Bid: { bg: '#b49be0', border: '#7d63b4' },
+  Cluster: { bg: '#e1f0f8', border: '#075f87' },
 }
-const DEFAULT_COLOR = { bg: '#94a3b8', border: '#64748b' }
+const DEFAULT_COLOR = { bg: '#b8c6d1', border: '#7f93a3' }
 
 // Cluster is an internal UI artifact, not a data entity — keep it out of the legend.
 const LEGEND = Object.entries(NODE_COLORS)
@@ -60,21 +65,24 @@ const LEGEND = Object.entries(NODE_COLORS)
 
 // Edge colors by semantic kind set on the backend (plus the synthetic CLUSTER edge).
 const EDGE_COLORS = {
-  WON: '#10b981',
-  BID: '#a855f7',
-  CONTACT: '#334155',
-  MANAGED: '#64748b',
-  AUTHORIZED: '#eab308',
-  CLUSTER: '#6366f1',
+  WON: '#2f8f5b',
+  BID: '#9b86cf',
+  CONTACT: '#9fb2c1',
+  MANAGED: '#8a9bb0',
+  AUTHORIZED: '#b8923f',
+  CLUSTER: '#075f87',
 }
 
 const ENTITY_TYPES = ['provider', 'unit', 'authorizer']
 
 export default function GraphExplorer() {
   const { t } = useTranslation()
+  const toast = useToast()
+  const [params] = useSearchParams()
   const cyRef = useRef(null)
   const containerRef = useRef(null)
   const navigate = useNavigate()
+  const [count, setCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [entityType, setEntityType] = useState('provider')
   const [filterShared, setFilterShared] = useState(false)
@@ -110,9 +118,13 @@ export default function GraphExplorer() {
             'background-color': 'data(bg)',
             'border-color': 'data(borderColor)',
             'border-width': 2,
-            color: '#f0f2f7',
+            color: '#102d3d',
             'font-size': '11px',
             'font-family': 'Inter, sans-serif',
+            'text-background-color': '#ffffff',
+            'text-background-opacity': 0.85,
+            'text-background-padding': 2,
+            'text-background-shape': 'roundrectangle',
             'text-valign': 'bottom',
             'text-margin-y': 6,
             width: 28, height: 28,
@@ -131,14 +143,15 @@ export default function GraphExplorer() {
         },
         {
           selector: 'node[group = "Authorizer"]',
-          style: { shape: 'star', width: 34, height: 34 },
+          style: { shape: 'hexagon', width: 32, height: 30 },
         },
         {
           selector: 'node[group = "Cluster"]',
           style: {
             shape: 'round-rectangle', width: 56, height: 34,
             'font-size': '12px', 'font-weight': 700,
-            'text-valign': 'center', 'text-margin-y': 0, color: '#e0e7ff',
+            'text-valign': 'center', 'text-margin-y': 0, color: '#075f87',
+            'text-background-opacity': 0,
           },
         },
         {
@@ -152,11 +165,11 @@ export default function GraphExplorer() {
             label: 'data(label)',
             'font-size': '10px',
             'font-weight': 600,
-            color: '#e2e8f0',
+            color: '#355363',
             'font-family': 'Inter, sans-serif',
             'min-zoomed-font-size': 9,
             'text-rotation': 'autorotate',
-            'text-background-color': '#0a0e1f',
+            'text-background-color': '#ffffff',
             'text-background-opacity': 0.9,
             'text-background-padding': 3,
             'text-background-shape': 'roundrectangle',
@@ -168,7 +181,7 @@ export default function GraphExplorer() {
         },
         {
           selector: 'edge[kind = "WON"]',
-          style: { width: 2.5, color: '#34d399' },
+          style: { width: 2.5, color: '#2f8f5b' },
         },
         {
           selector: 'edge[kind = "CLUSTER"]',
@@ -177,9 +190,10 @@ export default function GraphExplorer() {
         {
           selector: ':selected',
           style: {
-            'border-color': '#6366f1',
+            'border-color': '#102d3d',
             'border-width': 3,
-            'background-color': '#818cf8',
+            'overlay-color': '#075f87',
+            'overlay-opacity': 0.08,
           },
         },
       ],
@@ -399,13 +413,14 @@ export default function GraphExplorer() {
     try {
       const data = await fetchEntity(type, id, opts)
       loaded.current.set(`${type}::${id}`, { type, id })
+      setCount(loaded.current.size)
       mergeGraph(data)
       if (type === 'provider' && opts.won_only) await fetchNeighborProviders(opts)
       refresh()
     } catch (err) {
-      alert(`Error: ${err.message}`)
+      toast(err.detail || err.message)
     } finally { setLoading(false) }
-  }, [opts, fetchEntity, mergeGraph, refresh, fetchNeighborProviders])
+  }, [opts, fetchEntity, mergeGraph, refresh, fetchNeighborProviders, toast])
 
   // Re-fetch every loaded entity with the new filters, replacing the canvas.
   const reloadAll = useCallback(async (nextOpts) => {
@@ -421,9 +436,9 @@ export default function GraphExplorer() {
       if (nextOpts.won_only) await fetchNeighborProviders(nextOpts)
       refresh()
     } catch (err) {
-      alert(`Error: ${err.message}`)
+      toast(err.detail || err.message)
     } finally { setLoading(false) }
-  }, [fetchEntity, mergeGraph, refresh, fetchNeighborProviders])
+  }, [fetchEntity, mergeGraph, refresh, fetchNeighborProviders, toast])
 
   const setOpt = useCallback((key, value) => {
     const next = { ...opts, [key]: value }
@@ -485,7 +500,20 @@ export default function GraphExplorer() {
     loaded.current.clear()
     expandedProviders.current.clear()
     setSelectedNode(null)
+    setCount(0)
   }, [])
+
+  // Profiles link here with ?type=provider|unit|authorizer&id=... to open an
+  // entity's network directly.
+  const autoLoaded = useRef(false)
+  useEffect(() => {
+    const type = params.get('type')
+    const id = params.get('id')
+    if (autoLoaded.current || !id || !ENTITY_TYPES.includes(type)) return
+    autoLoaded.current = true
+    setEntityType(type)
+    addEntity(type, id)
+  }, [params, addEntity])
 
   const togglePill = (key, label) => (
     <label className={`toggle-pill${opts[key] ? ' active' : ''}`}>
@@ -536,146 +564,124 @@ export default function GraphExplorer() {
   }
   const search = SEARCH[entityType]
 
+  // Node properties worth showing in the detail panel, with readable keys.
+  const HIDDEN_PROPS = ['bg', 'borderColor', 'group', 'label', 'lineColor', 'source_url', 'members', 'provider', 'anchor']
+  const humanize = k => k.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())
+  const nodeName = group => t(`graph.node.${group}`, { defaultValue: group })
+
   return (
-    <>
-      <div className="page-header">
+    <Reveal>
+      <div className="page-head">
         <h1 className="page-title">{t('graph.title')}</h1>
-        <p className="page-subtitle">{t('graph.subtitle')}</p>
       </div>
 
-      <div className="flex gap-3 mb-4 flex-wrap items-center">
-        {/* Entity-type selector */}
-        <div className="flex" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 2 }}>
+      <section className="card toolbar" data-reveal="1" style={{ marginBottom: 12 }}>
+        <div className="segmented" role="group" aria-label={t('graph.entityType')}>
           {ENTITY_TYPES.map(type => (
-            <button
-              key={type}
-              className={`btn btn-sm ${entityType === type ? 'btn-primary' : 'btn-ghost'}`}
-              style={{ borderRadius: 'var(--radius-sm)' }}
-              onClick={() => setEntityType(type)}
-            >
+            <button key={type} type="button" aria-pressed={entityType === type} onClick={() => setEntityType(type)}>
               {t(`graph.entity_${type}`)}
             </button>
           ))}
         </div>
-
         <ProviderSearch
           key={entityType}
           onSelect={search.pick}
           placeholder={search.placeholder}
           allowRaw={search.allowRaw}
           source={search.source}
-          style={{ flex: 1, maxWidth: 360 }}
+          style={{ flex: '1 1 240px', maxWidth: 380 }}
         />
-        <button className="btn btn-danger btn-sm" onClick={clearAll}>{t('common.clear')}</button>
-      </div>
+        {count > 0 && <button type="button" className="btn btn-ghost btn-sm" onClick={clearAll}>{t('common.clear')}</button>}
 
-      {/* Configuration panel */}
-      <div className="card mb-4" style={{ padding: 16, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
+        <span className="toolbar-sep" />
         {togglePill('won_only', t('graph.wonOnly'))}
         {togglePill('show_earnings', t('graph.showEarnings'))}
         {togglePill('show_contacts', t('graph.showContacts'))}
-
-        <span style={{ width: 1, height: 24, background: 'var(--border)' }} />
-
-        <div className="field-inline">
-          <span>{t('graph.dateFrom')}</span>
-          <input type="date" className="input"
-            value={opts.date_from} onChange={e => setOpt('date_from', e.target.value)} />
-        </div>
-        <div className="field-inline">
-          <span>{t('graph.dateTo')}</span>
-          <input type="date" className="input"
-            value={opts.date_to} onChange={e => setOpt('date_to', e.target.value)} />
-        </div>
-
-        <span style={{ width: 1, height: 24, background: 'var(--border)' }} />
-
         <label className={`toggle-pill${groupProcesses ? ' active' : ''}`}>
           <input type="checkbox" checked={groupProcesses} onChange={e => setGroupProcesses(e.target.checked)} />
           <span className="dot" />
           {t('graph.groupProcesses')}
         </label>
-
         <label className={`toggle-pill${filterShared ? ' active' : ''}`}>
           <input type="checkbox" checked={filterShared} onChange={e => setFilterShared(e.target.checked)} />
           <span className="dot" />
           {t('graph.sharedOnly')}
         </label>
-      </div>
 
-      <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
-        <div ref={containerRef} style={{ width: '100%', height: 640, background: 'var(--bg-deep)' }} />
+        <span className="toolbar-sep" />
+        <label className="field">
+          {t('graph.dateFrom')}
+          <input type="date" className="input input-sm" value={opts.date_from} onChange={e => setOpt('date_from', e.target.value)} />
+        </label>
+        <label className="field">
+          {t('graph.dateTo')}
+          <input type="date" className="input input-sm" value={opts.date_to} onChange={e => setOpt('date_to', e.target.value)} />
+        </label>
+      </section>
 
-        {/* Legend */}
-        <div style={{ position: 'absolute', bottom: 16, left: 16, display: 'flex', gap: 8, flexWrap: 'wrap', maxWidth: 'calc(100% - 32px)' }}>
-          {LEGEND.map(({ label, bg }) => (
-            <div key={label} style={{ padding: '4px 10px', borderRadius: 'var(--radius-full)', background: 'var(--bg-glass)', backdropFilter: 'blur(8px)', border: '1px solid var(--border)', fontSize: 11, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: bg }} />
-              {label}
-            </div>
-          ))}
-        </div>
+      <section className="card graph-canvas" data-reveal="2">
+        <div ref={containerRef} className="graph-cy" />
 
-        {/* Node detail panel */}
+        {count === 0 && !loading && (
+          <div className="graph-empty">
+            <p className="muted">{t('graph.empty')}</p>
+          </div>
+        )}
+
+        {/* Node detail: opaque panel, never blur over a moving canvas. */}
         {selectedNode && (
-          <div style={{
-            position: 'absolute', top: 12, right: 12, width: 240,
-            background: 'var(--bg-glass)', backdropFilter: 'blur(16px)',
-            border: '1px solid var(--border-hover)', borderRadius: 'var(--radius-lg)',
-            padding: 16, zIndex: 10,
-          }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: NODE_COLORS[selectedNode.group]?.bg || DEFAULT_COLOR.bg }} />
-                <span className="text-xs font-semibold uppercase" style={{ color: 'var(--text-muted)' }}>{selectedNode.group}</span>
-              </div>
-              <button className="text-xs text-muted" onClick={() => setSelectedNode(null)}>✕</button>
+          <div className="graph-panel" role="dialog" aria-label={selectedNode.label}>
+            <div className="row" style={{ gap: 8 }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: NODE_COLORS[selectedNode.group]?.bg || DEFAULT_COLOR.bg }} />
+              <span className="label">{nodeName(selectedNode.group)}</span>
+              <span className="spacer" />
+              <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => setSelectedNode(null)} aria-label={t('common.close')}>
+                <IconClose size={14} />
+              </button>
             </div>
-            <div className="font-semibold text-sm mb-3 truncate">{selectedNode.label}</div>
-            <div className="flex flex-col gap-1 mb-3">
+            <div style={{ fontWeight: 600, marginTop: 8, overflowWrap: 'anywhere' }}>{selectedNode.label}</div>
+            <dl>
               {Object.entries(selectedNode.properties)
-                .filter(([k]) => !['bg', 'borderColor', 'group', 'label', 'lineColor', 'source_url', 'members', 'provider'].includes(k))
+                .filter(([k]) => !HIDDEN_PROPS.includes(k))
                 .slice(0, 8)
                 .map(([k, v]) => (
-                  <div key={k} className="flex justify-between gap-2">
-                    <span className="text-xs text-muted truncate">{k}</span>
-                    <span className="text-xs text-secondary truncate" style={{ maxWidth: 120 }}>{String(v ?? '—')}</span>
+                  <div key={k} style={{ display: 'contents' }}>
+                    <dt>{humanize(k)}</dt>
+                    <dd title={String(v ?? '—')}>{String(v ?? '—')}</dd>
                   </div>
                 ))}
-            </div>
+            </dl>
             {selectedNode.cuit && (
-              <button className="btn btn-primary btn-sm" style={{ width: '100%', justifyContent: 'center' }}
-                onClick={() => navigate(`/companies/${selectedNode.cuit}`)}>
-                {t('graph.viewCompany')}
+              <button type="button" className="btn btn-primary btn-sm btn-block" onClick={() => navigate(`/companies/${selectedNode.cuit}`)}>
+                {t('graph.viewCompany')} <IconArrowRight />
               </button>
             )}
             {selectedNode.group === 'ContractingUnit' && selectedNode.code && (
-              <button className="btn btn-primary btn-sm" style={{ width: '100%', justifyContent: 'center' }}
-                onClick={() => navigate(`/units/${encodeId(selectedNode.code)}`)}>
-                {t('graph.viewUnit')}
+              <button type="button" className="btn btn-primary btn-sm btn-block" onClick={() => navigate(`/units/${encodeId(selectedNode.code)}`)}>
+                {t('graph.viewUnit')} <IconArrowRight />
               </button>
             )}
             {selectedNode.group === 'Authorizer' && selectedNode.name && (
-              <button className="btn btn-primary btn-sm" style={{ width: '100%', justifyContent: 'center' }}
-                onClick={() => navigate(`/authorizers/${encodeURIComponent(selectedNode.name)}`)}>
-                {t('graph.viewAuthorizer')}
+              <button type="button" className="btn btn-primary btn-sm btn-block" onClick={() => navigate(`/authorizers/${encodeId(selectedNode.name)}`)}>
+                {t('graph.viewAuthorizer')} <IconArrowRight />
               </button>
             )}
             {selectedNode.group === 'Process' && selectedNode.source_url && (
-              <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
-                onClick={() => window.open(selectedNode.source_url, '_blank', 'noopener,noreferrer')}>
-                {t('graph.viewProcess')}
-              </button>
+              <a className="btn btn-secondary btn-sm btn-block" href={selectedNode.source_url} target="_blank" rel="noopener noreferrer">
+                {t('graph.viewProcess')} <IconExternal className="" />
+              </a>
             )}
           </div>
         )}
 
-        {loading && (
-          <div style={{ position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', padding: '6px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-secondary)' }}>
-            {t('common.loading')}
-          </div>
-        )}
-      </div>
-    </>
+        {loading && <div className="graph-loading glass glass-strong" role="status">{t('common.loading')}</div>}
+
+        <div className="graph-legend" aria-label={t('graph.legend')}>
+          {LEGEND.map(({ label, bg }) => (
+            <span key={label}><i style={{ background: bg }} />{nodeName(label)}</span>
+          ))}
+        </div>
+      </section>
+    </Reveal>
   )
 }

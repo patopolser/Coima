@@ -187,7 +187,7 @@ published separately under its own license; see
 ## Legal and ethics
 
 - Results are **heuristic indicators, not accusations**. Read [DISCLAIMER.md](DISCLAIMER.md).
-- Right of reply / correction / takedown: see [DISCLAIMER.md](DISCLAIMER.md) §5.
+- Right of reply / correction / takedown: see [DISCLAIMER.md](DISCLAIMER.md) §6.
 - Contributors must keep all wording framed as indicators — see
   [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - Security issues: see [SECURITY.md](SECURITY.md).

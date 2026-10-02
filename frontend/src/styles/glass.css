@@ -1,0 +1,79 @@
+/* ── Liquid glass ────────────────────────────────────────────────
+   Translucent surfaces for chrome only (navbar, menus, modals, panels).
+   Data and tables always sit on opaque --surface so contrast is stable
+   and scrolling never repaints a backdrop filter.
+
+   The specular highlight follows the pointer through --mx / --my, which
+   src/motion/useGlassPointer.js sets. Without JS it rests top-left.
+   ─────────────────────────────────────────────────────────────── */
+
+.glass {
+  position: relative;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--glass-inner), var(--shadow-glass);
+  isolation: isolate;
+}
+
+/* Edge refraction: a thin gradient rim that reads as a lens edge. */
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(207, 234, 247, 0.55) 40%,
+    rgba(255, 255, 255, 0.2) 60%,
+    rgba(159, 208, 234, 0.6)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Specular highlight that tracks the pointer. */
+.glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    240px circle at var(--mx, 20%) var(--my, 0%),
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0) 60%
+  );
+  opacity: var(--glass-shine, 0.35);
+  transition: opacity var(--dur-hover) var(--ease-hover);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.glass:hover { --glass-shine: 0.7; }
+
+.glass-strong { background: var(--glass-strong); }
+
+/* Opaque fallback where backdrop-filter is unsupported. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: var(--surface); }
+}
+
+/* Sheen sweep played once when a panel opens (motion/animate.js shine). */
+.glass-sheen-run {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 35%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+/* Panels that play the sheen clip it to their rounded shape. */
+.glass-clip { overflow: clip; }

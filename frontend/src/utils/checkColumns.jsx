@@ -122,7 +122,7 @@ export function renderColumnCell(column, row, meta = {}, options = {}) {
   const nameKey = column.name_key
   const urlKey = column.url_key || (meta.url_columns ? meta.url_columns[key] : undefined)
   const currentCuit = options.cuit
-  const linkStyle = { color: 'var(--accent-glow)', fontWeight: 500 }
+  const linkStyle = { color: 'var(--accent)', fontWeight: 500 }
 
   if (value === null || value === undefined || value === '') {
     return <span>—</span>

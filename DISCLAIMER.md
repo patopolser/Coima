@@ -41,17 +41,23 @@ de carácter público por la normativa de contrataciones y de acceso a la inform
 pública. El tratamiento se realiza con fines de **interés público, transparencia y
 control ciudadano**. Si usted considera que un dato personal es inexacto o que su
 publicación lo afecta, puede solicitar su revisión, rectificación o eliminación
-(ver sección 5).
+(ver sección 6).
 
 ### 4. Sin garantías
 
 El software y los datos se proveen "TAL CUAL" ("AS IS"), sin garantía de ningún tipo.
 Los autores y colaboradores **no asumen responsabilidad** por el uso que terceros hagan
-de la herramienta ni de los datos, ni por decisiones tomadas a partir de sus resultados.
-El uso es responsabilidad exclusiva de quien lo realiza, conforme a la legislación
-aplicable.
+de la herramienta ni de los datos, ni por decisiones, publicaciones o acciones tomadas a
+partir de sus resultados. El uso es **responsabilidad exclusiva de quien lo realiza**,
+conforme a la legislación aplicable.
 
-### 5. Derecho de respuesta, rectificación y baja
+### 5. Usos no permitidos
+
+No está permitido usar la herramienta o sus datos para hostigar, difamar, discriminar o
+perjudicar a personas, ni presentar sus indicadores como prueba de un delito o de una
+conducta indebida, ni usarla con cualquier fin contrario a la ley.
+
+### 6. Derecho de respuesta, rectificación y baja
 
 Si usted es una persona o entidad mencionada y considera que un dato es incorrecto,
 está desactualizado o lo perjudica indebidamente, escriba a
@@ -86,16 +92,23 @@ individual data point is guaranteed to be correct.
 
 Data may include names of public officials and company information that is already public
 under Argentine procurement and freedom-of-information law. Processing is carried out for
-**public-interest, transparency and civic-oversight** purposes. See section 5 to request
+**public-interest, transparency and civic-oversight** purposes. See section 6 to request
 review, correction or removal.
 
 ### 4. No warranty
 
 The software and data are provided "AS IS", without warranty of any kind. The authors and
 contributors **accept no liability** for third-party use of the tool or data, nor for
-decisions made based on its output.
+decisions, publications or actions based on its output. Any use is the **sole
+responsibility of the person who makes it**, under applicable law.
 
-### 5. Right of reply / correction / takedown
+### 5. Prohibited uses
+
+You may not use the tool or its data to harass, defame, discriminate against or harm
+people, present its indicators as proof of a crime or misconduct, or use it for any
+unlawful purpose.
+
+### 6. Right of reply / correction / takedown
 
 If you are mentioned and believe a data point is incorrect, outdated or unfairly harmful,
 contact polserpatricio@gmail.com. Well-founded requests will be reviewed and, where

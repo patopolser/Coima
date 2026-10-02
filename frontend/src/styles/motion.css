@@ -1,0 +1,54 @@
+/* ── Motion ──────────────────────────────────────────────────────
+   CSS half of the animation helper (the JS half lives in src/motion/).
+   Only transform and opacity animate; blur and large shadows stay static.
+   ─────────────────────────────────────────────────────────────── */
+
+@keyframes coima-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes coima-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes coima-spin { to { transform: rotate(360deg); } }
+@keyframes coima-shimmer { to { background-position: -200% 0; } }
+@keyframes coima-twinkle {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+@keyframes coima-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.anim-enter { animation: coima-enter var(--dur-page) var(--ease-in) both; }
+.anim-fade { animation: coima-fade var(--dur-list) var(--ease-in) both; }
+
+/* Hover lift used by interactive rows and cards. */
+.lift {
+  transition:
+    transform var(--dur-hover) var(--ease-hover),
+    box-shadow var(--dur-hover) var(--ease-hover),
+    background-color var(--dur-hover) var(--ease-hover),
+    border-color var(--dur-hover) var(--ease-hover);
+}
+.lift:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.lift:active { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-page: 0ms;
+    --dur-list: 0ms;
+    --dur-modal-in: 0ms;
+    --dur-modal-out: 0ms;
+    --dur-hover: 0ms;
+    --dur-value: 0ms;
+    --dur-shine: 0ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  .lift:hover { transform: none; }
+  .glass::after { display: none; }
+}

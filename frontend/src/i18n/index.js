@@ -5,7 +5,11 @@ import es from './locales/es.json'
 
 export const LANG_KEY = 'coima_lang'
 
-const stored = localStorage.getItem(LANG_KEY)
+// Storage can be unavailable (private mode, blocked site data).
+const safeGet = key => { try { return localStorage.getItem(key) } catch { return null } }
+const safeSet = (key, value) => { try { localStorage.setItem(key, value) } catch { /* session only */ } }
+
+const stored = safeGet(LANG_KEY)
 const lng = stored === 'es' ? 'es' : 'en'
 
 i18n.use(initReactI18next).init({
@@ -20,14 +24,14 @@ i18n.use(initReactI18next).init({
 })
 
 i18n.on('languageChanged', (lang) => {
-  localStorage.setItem(LANG_KEY, lang)
+  safeSet(LANG_KEY, lang)
   document.documentElement.lang = lang
 })
 
 document.documentElement.lang = lng
 
 export function getApiLanguage() {
-  return i18n.language || localStorage.getItem(LANG_KEY) || 'en'
+  return i18n.language || safeGet(LANG_KEY) || 'en'
 }
 
 export default i18n

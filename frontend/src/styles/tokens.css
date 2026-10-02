@@ -1,0 +1,106 @@
+/* ═══════════════════════════════════════════════════════════════
+   COIMA · Design tokens (direction "Prisma", light only)
+   Palette: celeste / white / gold.
+   Gold is decorative only; never carries information.
+   See docs/design/ for the design consult and the reference prototype.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #eaf4fa;
+  --bg-tint: #dcecf6;
+  --surface: #ffffff;
+  --surface-muted: #f5f9fc;
+  --glass: rgba(255, 255, 255, 0.9);
+  --glass-strong: rgba(255, 255, 255, 0.96);
+  --focus-surface: #10293a;     /* dark focal cards (Mayor riesgo, score block) */
+  --focus-surface-2: #17384d;
+
+  /* Lines */
+  --line: #dbe7ef;
+  --line-strong: #c4d6e2;
+  --line-glass: rgba(255, 255, 255, 0.8);
+
+  /* Text (all >= 5:1 on --bg and on white) */
+  --text-1: #102d3d;
+  --text-2: #355363;
+  --text-3: #516877;
+  --text-on-focus: #f3f8fb;
+  --text-on-focus-2: #b9cfdc;
+
+  /* Accent: reserved for the ONE next action per screen + links */
+  --accent: #075f87;
+  --accent-hover: #054c6c;
+  --accent-soft: #e1f0f8;
+  --accent-ring: rgba(7, 95, 135, 0.35);
+
+  /* Decoratives */
+  --celeste: #cfeaf7;
+  --celeste-deep: #9fd0ea;
+  --gold: #9a752f;
+  --gold-soft: #e9dcbd;
+
+  /* Risk scale (text / background pairs verified AA >= 5.9:1) */
+  --risk-low: #166534;
+  --risk-low-bg: #f0fdf4;
+  --risk-medium: #854d0e;
+  --risk-medium-bg: #fffbeb;
+  --risk-high: #b91c1c;
+  --risk-high-bg: #fef2f2;
+  --risk-critical: #881337;
+  --risk-critical-bg: #fff1f2;
+  --danger: #b91c1c;
+  --success: #166534;
+
+  /* Type */
+  --font-display: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --text-xs: 0.75rem;     /* 12 */
+  --text-sm: 0.8125rem;   /* 13 */
+  --text-md: 0.875rem;    /* 14 */
+  --text-base: 0.9375rem; /* 15 */
+  --text-lg: 1.125rem;    /* 18 */
+  --text-xl: 1.375rem;    /* 22 */
+  --text-2xl: 1.75rem;    /* 28 */
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(18, 60, 87, 0.06);
+  --shadow-md: 0 6px 18px rgba(18, 60, 87, 0.07);
+  --shadow-glass: 0 12px 32px rgba(18, 60, 87, 0.08);
+  --shadow-focus: 0 18px 40px rgba(16, 41, 58, 0.22);
+
+  /* Glass recipe */
+  --glass-blur: blur(20px) saturate(125%);
+  --glass-border: 1px solid var(--line-glass);
+  --glass-inner: inset 0 1px 0 #ffffff;
+
+  /* Motion (mirrored in src/motion/tokens.js) */
+  --dur-page: 260ms;
+  --dur-list: 180ms;
+  --dur-modal-in: 240ms;
+  --dur-modal-out: 160ms;
+  --dur-hover: 160ms;
+  --dur-value: 180ms;
+  --dur-shine: 220ms;
+  --ease-in: cubic-bezier(0.16, 1, 0.3, 1);   /* entering */
+  --ease-out: cubic-bezier(0.4, 0, 1, 1);     /* leaving */
+  --ease-hover: cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* Layout */
+  --page-max: 1280px;
+  --gutter: 16px;
+}
+
+@media (min-width: 768px) {
+  :root { --gutter: 32px; }
+}

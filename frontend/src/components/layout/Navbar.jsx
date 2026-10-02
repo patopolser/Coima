@@ -1,35 +1,47 @@
-import { NavLink, useLocation } from 'react-router-dom'
-import { useState, useRef, useLayoutEffect } from 'react'
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom'
+import { useState, useRef, useLayoutEffect, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from './LanguageSwitcher'
+import { Wordmark } from '../brand'
+import { Menu, MenuItem } from '../ui'
+import { usePresence, useGlassPointer } from '../../motion'
+import {
+  IconPanel, IconBuilding, IconLandmark, IconUser, IconNetwork,
+  IconSearch, IconMore, IconServer, IconSettings, IconMenu, IconClose,
+} from '../icons'
 
-const navLinks = [
-  { to: '/providers', labelKey: 'nav.providers' },
-  { to: '/units', labelKey: 'nav.units' },
-  { to: '/authorizers', labelKey: 'nav.authorizers' },
-  { to: '/graph', labelKey: 'nav.graph' },
-  { to: '/scraper', labelKey: 'nav.scraper' },
-  { to: '/settings', labelKey: 'nav.settings' },
+// Investigation views. Operational tools (scraper, settings) live in the "…" menu.
+const NAV = [
+  { to: '/', labelKey: 'nav.dashboard', Icon: IconPanel, exact: true },
+  { to: '/providers', labelKey: 'nav.providers', Icon: IconBuilding, also: ['/companies', '/checks'] },
+  { to: '/units', labelKey: 'nav.units', Icon: IconLandmark },
+  { to: '/authorizers', labelKey: 'nav.authorizers', Icon: IconUser },
+  { to: '/graph', labelKey: 'nav.graph', Icon: IconNetwork },
 ]
+
+function isActive(link, pathname) {
+  if (link.exact) return pathname === link.to
+  return [link.to, ...(link.also || [])].some(p => pathname.startsWith(p))
+}
 
 export default function Navbar() {
   const { t } = useTranslation()
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const location = useLocation()
+  const barRef = useRef(null)
   const linkRefs = useRef({})
   const [indicator, setIndicator] = useState({ left: 0, top: 0, width: 0, height: 0, visible: false })
+  const mobile = usePresence(mobileOpen)
+  useGlassPointer(barRef)
 
-  const isActive = (link) => {
-    if (link.exact) return location.pathname === link.to
-    return location.pathname.startsWith(link.to)
-  }
+  const active = NAV.find(l => isActive(l, pathname))
 
-  const activeLink = navLinks.find(isActive)
-
+  // Sliding indicator under the active link.
   useLayoutEffect(() => {
     const update = () => {
-      const el = activeLink ? linkRefs.current[activeLink.to] : null
-      if (el) {
+      const el = active ? linkRefs.current[active.to] : null
+      if (el && el.offsetParent) {
         setIndicator({ left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight, visible: true })
       } else {
         setIndicator(i => ({ ...i, visible: false }))
@@ -38,19 +50,21 @@ export default function Navbar() {
     update()
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
-  }, [activeLink, t])
+  }, [active, t])
+
+  useEffect(() => { setMobileOpen(false) }, [pathname])
 
   return (
-    <header className="navbar">
-      <div className="navbar-inner">
-        <NavLink to="/" className="navbar-brand">
-          <div className="navbar-brand-icon">C</div>
-          <span>Coima</span>
-        </NavLink>
+    <div className="navbar-shell">
+      <header ref={barRef} className="navbar glass">
+        <Link to="/" className="navbar-brand" aria-label={t('nav.home')}>
+          <Wordmark />
+        </Link>
 
-        <nav className="navbar-nav">
+        <nav className="nav-links" aria-label={t('nav.main')}>
           <span
             className="nav-indicator"
+            aria-hidden="true"
             style={{
               transform: `translate(${indicator.left}px, ${indicator.top}px)`,
               width: indicator.width,
@@ -58,43 +72,62 @@ export default function Navbar() {
               opacity: indicator.visible ? 1 : 0,
             }}
           />
-          {navLinks.map(link => (
+          {NAV.map(link => (
             <NavLink
               key={link.to}
               to={link.to}
+              end={link.exact}
               ref={el => { linkRefs.current[link.to] = el }}
-              className={`nav-link ${isActive(link) ? 'active' : ''}`}
+              className={`nav-link ${active === link ? 'active' : ''}`}
+              aria-current={active === link ? 'page' : undefined}
+              title={t(link.labelKey)}
             >
-              {t(link.labelKey)}
+              <link.Icon size={17} />
+              <span className="nav-label">{t(link.labelKey)}</span>
             </NavLink>
           ))}
         </nav>
 
         <div className="navbar-actions">
-          <LanguageSwitcher />
           <button
-            className="mobile-nav btn-ghost btn-sm"
-            onClick={() => setMobileOpen(!mobileOpen)}
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => navigate('/providers?focus=search')}
           >
-            ☰
+            <IconSearch /> <span className="nav-label">{t('nav.search')}</span>
+          </button>
+          <LanguageSwitcher />
+          <Menu label={t('nav.more')} icon={<IconMore size={18} />}>
+            <MenuItem icon={<IconServer />} onClick={() => navigate('/scraper')}>{t('nav.scraper')}</MenuItem>
+            <MenuItem icon={<IconSettings />} onClick={() => navigate('/settings')}>{t('nav.settings')}</MenuItem>
+          </Menu>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon navbar-mobile-toggle"
+            aria-label={mobileOpen ? t('nav.closeMenu') : t('nav.openMenu')}
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen(o => !o)}
+          >
+            {mobileOpen ? <IconClose size={18} /> : <IconMenu size={18} />}
           </button>
         </div>
-      </div>
+      </header>
 
-      {mobileOpen && (
-        <nav className="navbar-mobile">
-          {navLinks.map(link => (
+      {mobile.mounted && (
+        <nav ref={mobile.ref} className="navbar-mobile glass glass-strong" aria-label={t('nav.main')}>
+          {NAV.map(link => (
             <NavLink
               key={link.to}
               to={link.to}
-              className={`nav-link ${isActive(link) ? 'active' : ''}`}
-              onClick={() => setMobileOpen(false)}
+              end={link.exact}
+              className={`nav-link ${active === link ? 'active' : ''}`}
             >
+              <link.Icon size={17} />
               {t(link.labelKey)}
             </NavLink>
           ))}
         </nav>
       )}
-    </header>
+    </div>
   )
 }

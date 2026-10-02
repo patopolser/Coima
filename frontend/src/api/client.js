@@ -18,7 +18,13 @@ async function request(path, options = {}) {
   })
   if (!res.ok) {
     const body = await res.text()
-    throw new Error(`${res.status}: ${body}`)
+    let detail = body
+    try { detail = JSON.parse(body)?.detail ?? body } catch { /* plain-text body */ }
+    // status lets pages tell "not found" (404) apart from network/server errors.
+    const err = new Error(`${res.status}: ${typeof detail === 'string' ? detail : body}`)
+    err.status = res.status
+    err.detail = typeof detail === 'string' ? detail : ''
+    throw err
   }
   return res.json()
 }
